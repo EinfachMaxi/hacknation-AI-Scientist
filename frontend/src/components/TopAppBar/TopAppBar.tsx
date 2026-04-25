@@ -19,15 +19,20 @@ export default function TopAppBar() {
   return (
     <header className="topbar" id="top-app-bar">
       <div className="topbar__left">
-        <span className="topbar__logo" onClick={() => navigate('/')} role="button" tabIndex={0}>
+        <button type="button" className="topbar__logo" onClick={() => navigate('/')} aria-label="Go to dashboard">
           The AI Scientist
-        </span>
+        </button>
         <nav className="topbar__nav">
           {navLinks.map((link) => (
-            <a key={link.label} className={`topbar__nav-link ${isActive(link.path) ? 'topbar__nav-link--active' : ''}`}
-              onClick={(e) => { e.preventDefault(); if (link.path !== '#') navigate(link.path) }} href={link.path}>
+            <button
+              type="button"
+              key={link.label}
+              className={`topbar__nav-link ${isActive(link.path) ? 'topbar__nav-link--active' : ''}`}
+              onClick={() => { if (link.path !== '#') navigate(link.path) }}
+              aria-current={isActive(link.path) ? 'page' : undefined}
+            >
               {link.label}
-            </a>
+            </button>
           ))}
         </nav>
       </div>

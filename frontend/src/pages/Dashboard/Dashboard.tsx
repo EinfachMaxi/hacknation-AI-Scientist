@@ -21,6 +21,7 @@ const statusColors: Record<string, string> = { completed: 'var(--secondary)', 'i
 export default function Dashboard() {
   const [hypothesis, setHypothesis] = useState('')
   const navigate = useNavigate()
+  const canGenerate = hypothesis.trim().length > 0
 
   return (
     <div className="dashboard knowledge-grid">
@@ -32,14 +33,30 @@ export default function Dashboard() {
             Scientific Question Formulation
           </h1>
           <div className="dashboard__textarea-wrapper">
-            <textarea className="dashboard__textarea font-data-mono" placeholder="Type your hypothesis (e.g., A paper-based electrochemical biosensor...)" value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} id="hypothesis-textarea" />
-            <div className="dashboard__textarea-status font-label-caps">{hypothesis.length > 0 ? `${hypothesis.length} CHARS` : 'AWAITING INPUT'}</div>
+            <label className="dashboard__sr-only" htmlFor="hypothesis-textarea">Scientific hypothesis input</label>
+            <textarea
+              className="dashboard__textarea font-data-mono"
+              placeholder="Type your hypothesis (e.g., A paper-based electrochemical biosensor...)"
+              value={hypothesis}
+              onChange={(e) => setHypothesis(e.target.value)}
+              id="hypothesis-textarea"
+              aria-describedby="hypothesis-status"
+            />
+            <div className="dashboard__textarea-status font-label-caps" id="hypothesis-status" aria-live="polite">
+              {hypothesis.length > 0 ? `${hypothesis.length} CHARS` : 'AWAITING INPUT'}
+            </div>
           </div>
           <div className="dashboard__input-actions">
             <button className="dashboard__attach-btn glass-panel font-label-caps" id="attach-context-btn">
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>attach_file</span>Attach Context
             </button>
-            <button className="dashboard__generate-btn btn-glow font-label-caps" onClick={() => { if (hypothesis.trim()) navigate('/experiments/EXP-8492/progress') }} id="generate-plan-btn">
+            <button
+              className="dashboard__generate-btn btn-glow font-label-caps"
+              onClick={() => { if (canGenerate) navigate('/experiments/EXP-8492/progress') }}
+              id="generate-plan-btn"
+              disabled={!canGenerate}
+              aria-disabled={!canGenerate}
+            >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>auto_awesome</span>Generate Plan
             </button>
           </div>
@@ -53,7 +70,14 @@ export default function Dashboard() {
             </div>
             <div className="dashboard__experiment-list">
               {recentExperiments.map((exp) => (
-                <div key={exp.id} className="dashboard__experiment-row" onClick={() => navigate(`/experiments/${exp.id}`)} id={`experiment-${exp.id}`}>
+                <button
+                  type="button"
+                  key={exp.id}
+                  className="dashboard__experiment-row"
+                  onClick={() => navigate(`/experiments/${exp.id}`)}
+                  id={`experiment-${exp.id}`}
+                  aria-label={`Open experiment ${exp.id}`}
+                >
                   <div className="dashboard__experiment-info">
                     <span className="dashboard__experiment-dot" style={{ background: statusColors[exp.status] }}></span>
                     <span className="font-data-mono dashboard__experiment-id">{exp.id}</span>
@@ -63,7 +87,7 @@ export default function Dashboard() {
                     <span className="dashboard__experiment-time font-label-caps">{exp.timeAgo}</span>
                     <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--outline)' }}>chevron_right</span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>

@@ -2,47 +2,47 @@
 /* Scientific Modern · Glassmorphism · Dark Mode */
 
 :root {
-  --primary: #adc6ff;
-  --primary-container: #4d8eff;
-  --on-primary: #002e6a;
-  --on-primary-container: #00285d;
-  --primary-fixed: #d8e2ff;
-  --primary-fixed-dim: #adc6ff;
-  --inverse-primary: #005ac2;
-  --secondary: #4ae176;
-  --secondary-container: #00b954;
-  --on-secondary: #003915;
-  --on-secondary-container: #004119;
-  --secondary-fixed: #6bff8f;
-  --secondary-fixed-dim: #4ae176;
-  --tertiary: #ffb95f;
-  --tertiary-container: #ca8100;
-  --on-tertiary: #472a00;
-  --on-tertiary-container: #3e2400;
-  --tertiary-fixed: #ffddb8;
-  --tertiary-fixed-dim: #ffb95f;
-  --error: #ffb4ab;
-  --error-container: #93000a;
-  --on-error: #690005;
-  --on-error-container: #ffdad6;
-  --background: #0c1324;
-  --on-background: #dce1fb;
-  --surface: #0c1324;
-  --surface-dim: #0c1324;
-  --surface-bright: #33394c;
-  --surface-container-lowest: #070d1f;
-  --surface-container-low: #151b2d;
-  --surface-container: #191f31;
-  --surface-container-high: #23293c;
-  --surface-container-highest: #2e3447;
-  --surface-variant: #2e3447;
-  --on-surface: #dce1fb;
-  --on-surface-variant: #c2c6d6;
-  --surface-tint: #adc6ff;
-  --inverse-surface: #dce1fb;
-  --inverse-on-surface: #2a3043;
-  --outline: #8c909f;
-  --outline-variant: #424754;
+  --primary: #5d7cff;
+  --primary-container: #445fd4;
+  --on-primary: #f3f6ff;
+  --on-primary-container: #ecf1ff;
+  --primary-fixed: #7b95ff;
+  --primary-fixed-dim: #5d7cff;
+  --inverse-primary: #4f69de;
+  --secondary: #5ea477;
+  --secondary-container: #3f7a58;
+  --on-secondary: #e9f6ee;
+  --on-secondary-container: #dbf1e4;
+  --secondary-fixed: #79bb90;
+  --secondary-fixed-dim: #5ea477;
+  --tertiary: #c7a56f;
+  --tertiary-container: #97774a;
+  --on-tertiary: #faf2e7;
+  --on-tertiary-container: #f6ebdb;
+  --tertiary-fixed: #d6b685;
+  --tertiary-fixed-dim: #c7a56f;
+  --error: #d16d7b;
+  --error-container: #8f3c49;
+  --on-error: #fff5f6;
+  --on-error-container: #ffe9ec;
+  --background: #10141d;
+  --on-background: #e5eaf4;
+  --surface: #10141d;
+  --surface-dim: #10141d;
+  --surface-bright: #2a3140;
+  --surface-container-lowest: #0b0f16;
+  --surface-container-low: #171c27;
+  --surface-container: #1d2330;
+  --surface-container-high: #242c3a;
+  --surface-container-highest: #2e3646;
+  --surface-variant: #2e3646;
+  --on-surface: #e5eaf4;
+  --on-surface-variant: #b4bccb;
+  --surface-tint: #aeb9d3;
+  --inverse-surface: #dfe4ef;
+  --inverse-on-surface: #202633;
+  --outline: #8590a4;
+  --outline-variant: #3a4355;
   --unit: 4px;
   --gutter: 16px;
   --margin: 24px;
@@ -79,14 +79,12 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--outline); }
 
 .glass-panel {
-  background: rgba(25, 31, 49, 0.7);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
 }
 
 .knowledge-grid {
-  background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image: none;
 }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -99,8 +97,8 @@ body {
 .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
 .animate-slideInRight { animation: slideInRight 0.4s ease-out forwards; }
 
-.btn-glow { box-shadow: 0 0 15px rgba(77, 142, 255, 0.4); transition: box-shadow 0.3s ease; }
-.btn-glow:hover { box-shadow: 0 0 25px rgba(77, 142, 255, 0.6); }
+.btn-glow { box-shadow: none; transition: background-color 0.2s ease, border-color 0.2s ease; }
+.btn-glow:hover { box-shadow: none; }
 
 a { color: inherit; text-decoration: none; }
 input, textarea { outline: none; border: none; background: none; color: inherit; font: inherit; }

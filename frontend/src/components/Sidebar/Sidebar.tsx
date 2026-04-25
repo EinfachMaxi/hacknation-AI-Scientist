@@ -31,7 +31,7 @@ export default function Sidebar() {
       <div className="sidebar__session">
         <div className="sidebar__session-header">
           <div className="sidebar__session-icon">
-            <span className="material-symbols-outlined" style={{ color: '#60a5fa', fontVariationSettings: "'FILL' 1" }}>science</span>
+            <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontVariationSettings: "'FILL' 1" }}>science</span>
           </div>
           <div>
             <h2 className="sidebar__session-name">Lab Alpha-7</h2>
@@ -41,19 +41,24 @@ export default function Sidebar() {
       </div>
       <nav className="sidebar__nav">
         {mainNav.map((item) => (
-          <a key={item.label} className={`sidebar__nav-item ${isActive(item.path) ? 'sidebar__nav-item--active' : ''}`}
-            onClick={(e) => { e.preventDefault(); if (item.path !== '#') navigate(item.path) }} href={item.path}>
+          <button
+            type="button"
+            key={item.label}
+            className={`sidebar__nav-item ${isActive(item.path) ? 'sidebar__nav-item--active' : ''}`}
+            onClick={() => { if (item.path !== '#') navigate(item.path) }}
+            aria-current={isActive(item.path) ? 'page' : undefined}
+          >
             <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: isActive(item.path) ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
             <span>{item.label}</span>
-          </a>
+          </button>
         ))}
       </nav>
       <div className="sidebar__bottom">
         {bottomNav.map((item) => (
-          <a key={item.label} className="sidebar__nav-item" onClick={(e) => { e.preventDefault() }} href={item.path}>
+          <button type="button" key={item.label} className="sidebar__nav-item" onClick={() => {}}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{item.icon}</span>
             <span>{item.label}</span>
-          </a>
+          </button>
         ))}
       </div>
     </aside>
