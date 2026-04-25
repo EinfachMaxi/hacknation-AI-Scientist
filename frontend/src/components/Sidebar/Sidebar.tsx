@@ -8,15 +8,9 @@ const mainNav: NavItem[] = [
   { icon: 'science', label: 'Lab Notebook', path: '/experiments/EXP-8492' },
   { icon: 'hub', label: 'Agent Network', path: '#' },
   { icon: 'schema', label: 'Knowledge Graph', path: '/knowledge-garden' },
-  { icon: 'inventory_2', label: 'Archive', path: '#' },
 ]
 
-const bottomNav: NavItem[] = [
-  { icon: 'memory', label: 'System Status', path: '#' },
-  { icon: 'help_outline', label: 'Documentation', path: '#' },
-]
-
-export default function Sidebar() {
+export default function Sidebar({ isOpen }: { isOpen: boolean }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -27,7 +21,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="sidebar" id="sidebar-nav">
+    <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`} id="sidebar-nav" aria-hidden={!isOpen}>
       <div className="sidebar__session">
         <div className="sidebar__session-header">
           <div className="sidebar__session-icon">
@@ -53,14 +47,6 @@ export default function Sidebar() {
           </button>
         ))}
       </nav>
-      <div className="sidebar__bottom">
-        {bottomNav.map((item) => (
-          <button type="button" key={item.label} className="sidebar__nav-item" onClick={() => {}}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
     </aside>
   )
 }

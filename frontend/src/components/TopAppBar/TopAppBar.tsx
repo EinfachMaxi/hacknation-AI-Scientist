@@ -3,11 +3,15 @@ import './TopAppBar.css'
 
 const navLinks = [
   { label: 'Experiments', path: '/' },
-  { label: 'Knowledge Garden', path: '/knowledge-garden' },
   { label: 'Agents', path: '#' },
 ]
 
-export default function TopAppBar() {
+interface TopAppBarProps {
+  sidebarOpen: boolean
+  onToggleSidebar: () => void
+}
+
+export default function TopAppBar({ sidebarOpen, onToggleSidebar }: TopAppBarProps) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -19,6 +23,18 @@ export default function TopAppBar() {
   return (
     <header className="topbar" id="top-app-bar">
       <div className="topbar__left">
+        <button
+          type="button"
+          className="topbar__menu-btn"
+          onClick={onToggleSidebar}
+          aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar-nav"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+            {sidebarOpen ? 'menu_open' : 'menu'}
+          </span>
+        </button>
         <button type="button" className="topbar__logo" onClick={() => navigate('/')} aria-label="Go to dashboard">
           The AI Scientist
         </button>

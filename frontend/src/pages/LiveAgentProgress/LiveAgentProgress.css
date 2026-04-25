@@ -7,8 +7,13 @@
 .live-progress__ping { position:absolute; top:-4px; right:-4px; width:12px; height:12px; background:var(--secondary); border-radius:50%; animation:ping 1s cubic-bezier(0,0,0.2,1) infinite; }
 .live-progress__ping-static { position:absolute; top:-4px; right:-4px; width:12px; height:12px; background:var(--secondary); border-radius:50%; }
 .live-progress__swarm-badge { display:inline-block; background:var(--surface-container-high); padding:4px 8px; border-radius:4px; border:1px solid var(--outline-variant); color:var(--on-surface-variant); font-size:10px; }
-.live-progress__grid { display:grid; grid-template-columns:repeat(2,1fr); gap:var(--gutter); }
-.agent-card { background:var(--surface-container-high); border:1px solid var(--outline-variant); border-radius:8px; padding:20px; display:flex; flex-direction:column; box-shadow:none; position:relative; overflow:hidden; min-height:280px; }
+
+.live-progress__workspace { display:grid; grid-template-columns:minmax(320px, 420px) 1fr; gap:var(--gutter); align-items:start; }
+.live-progress__agents-column { display:flex; flex-direction:column; gap:12px; max-height:calc(100vh - 180px); overflow:auto; padding-right:4px; }
+.live-progress__network-column { border-radius:8px; padding:20px; min-height:640px; display:flex; flex-direction:column; gap:16px; }
+.live-progress__column-title { display:flex; align-items:center; gap:8px; color:var(--on-surface-variant); }
+
+.agent-card { background:var(--surface-container-high); border:1px solid var(--outline-variant); border-radius:8px; padding:16px; display:flex; flex-direction:column; box-shadow:none; position:relative; overflow:hidden; min-height:210px; }
 .agent-card--dormant { background:var(--surface-container); border-color:rgba(66,71,84,0.5); opacity:0.6; }
 .agent-card__progress-track { position:absolute; top:0; left:0; width:100%; height:2px; background:var(--surface-container-low); }
 .agent-card__progress-fill { height:100%; }
@@ -19,7 +24,7 @@
 .agent-card__icon--primary { background:var(--primary-container); border:1px solid var(--primary); color:var(--on-primary-container); }
 .agent-card__icon--tertiary { background:var(--tertiary-container); border:1px solid var(--tertiary); color:var(--on-tertiary-container); }
 .agent-card__icon--dormant { background:var(--surface-variant); border:1px solid var(--outline); color:var(--outline); }
-.agent-card__name { font-family:'Inter',sans-serif; font-size:18px; font-weight:600; color:var(--on-surface); }
+.agent-card__name { font-family:'Inter',sans-serif; font-size:16px; font-weight:600; color:var(--on-surface); }
 .agent-card__terminal { flex:1; background:var(--surface-dim); border:1px solid rgba(66,71,84,0.5); border-radius:4px; padding:12px; margin-bottom:16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--on-surface-variant); overflow:hidden; display:flex; flex-direction:column; gap:4px; }
 .agent-card__terminal--dormant { border-color:rgba(66,71,84,0.3); }
 .agent-card__log--primary { color:var(--primary); }
@@ -30,3 +35,50 @@
 .agent-card__footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto; padding-top:8px; border-top:1px solid rgba(66,71,84,0.3); }
 .agent-card__bars { display:flex; gap:3px; }
 .agent-card__bar { width:6px; height:16px; }
+
+.network-graph { position:relative; height:330px; border-radius:8px; background:linear-gradient(145deg, rgba(36,44,58,0.7), rgba(23,28,39,0.9)); border:1px solid var(--outline-variant); padding:20px; overflow:hidden; }
+.network-graph__lines { position:absolute; inset:0; width:100%; height:100%; }
+.network-graph__line { stroke:rgba(133, 144, 164, 0.35); stroke-width:1.2; stroke-dasharray:4 4; }
+.network-graph__line--active { stroke:rgba(93, 124, 255, 0.95); animation:networkFlow 2.2s linear infinite; }
+.network-graph__line--soft { stroke:rgba(94, 164, 119, 0.5); }
+.network-graph__node { position:absolute; min-width:112px; border-radius:8px; border:1px solid var(--outline-variant); background:rgba(16, 20, 29, 0.9); padding:10px 12px; display:flex; flex-direction:column; gap:4px; box-shadow:0 0 0 1px rgba(66,71,84,0.4); }
+.network-graph__node span { color:var(--on-surface-variant); font-size:10px; }
+.network-graph__node strong { color:var(--on-surface); font-size:18px; }
+.network-graph__node--literature { top:36px; left:32px; }
+.network-graph__node--protocol { top:36px; left:50%; transform:translateX(-50%); border-color:rgba(93,124,255,0.7); box-shadow:0 0 12px rgba(93,124,255,0.3); }
+.network-graph__node--materials { right:32px; top:86px; border-color:rgba(199,165,111,0.7); }
+.network-graph__node--validation { left:32px; bottom:30px; border-color:rgba(94,164,119,0.6); }
+
+.network-messages { flex:1; min-height:220px; display:flex; flex-direction:column; gap:8px; }
+.network-messages__title { color:var(--on-surface-variant); }
+.network-messages__feed { display:flex; flex-direction:column; gap:8px; overflow:auto; padding-right:4px; }
+.network-messages__item { border-radius:6px; border:1px solid var(--outline-variant); background:var(--surface-container-high); padding:10px 12px; display:flex; flex-direction:column; gap:4px; }
+.network-messages__item span { color:var(--outline); font-size:10px; }
+.network-messages__item p { color:var(--on-surface); font-size:12px; line-height:1.4; }
+.network-messages__item--success { border-color:rgba(94,164,119,0.45); }
+.network-messages__item--warn { border-color:rgba(209,109,123,0.45); }
+.network-messages__item--info { border-color:rgba(93,124,255,0.45); }
+
+@keyframes networkFlow {
+  0% { stroke-dashoffset:16; }
+  100% { stroke-dashoffset:0; }
+}
+
+@media (max-width: 1200px) {
+  .live-progress__workspace { grid-template-columns:1fr; }
+  .live-progress__agents-column { max-height:none; overflow:visible; }
+  .live-progress__network-column { min-height:auto; }
+}
+
+@media (max-width: 768px) {
+  .live-progress { padding:16px; }
+  .live-progress__banner { padding:16px; }
+  .live-progress__banner-content { flex-direction:column; }
+  .network-graph { height:300px; padding:16px; }
+  .network-graph__node { min-width:92px; padding:8px 10px; }
+  .network-graph__node strong { font-size:16px; }
+  .network-graph__node--literature { top:24px; left:18px; }
+  .network-graph__node--protocol { top:24px; }
+  .network-graph__node--materials { right:18px; top:90px; }
+  .network-graph__node--validation { left:18px; bottom:18px; }
+}

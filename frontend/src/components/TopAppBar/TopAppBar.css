@@ -1,5 +1,7 @@
 .topbar { position:fixed; top:0; left:0; width:100%; z-index:50; display:flex; justify-content:space-between; align-items:center; padding:0 24px; height:var(--header-height); background:var(--surface-container-low); border-bottom:1px solid var(--outline-variant); box-shadow:none; }
 .topbar__left { display:flex; align-items:center; gap:32px; }
+.topbar__menu-btn { display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; color:var(--on-surface-variant); transition:all 0.2s; }
+.topbar__menu-btn:hover { background:var(--surface-container-high); color:var(--on-surface); }
 .topbar__logo { font-size:20px; font-weight:800; letter-spacing:-0.03em; color:var(--primary); text-transform:uppercase; user-select:none; transition:opacity 0.2s; min-height:44px; padding:0 8px; border-radius:8px; }
 .topbar__logo:hover { opacity:0.8; }
 .topbar__nav { display:flex; align-items:center; gap:24px; }
@@ -22,6 +24,7 @@
 
 @media (max-width: 1024px) {
   .topbar { padding:0 16px; }
+  .topbar__menu-btn { display:none; }
   .topbar__nav { display:none; }
   .topbar__search-input { width:180px; }
 }
