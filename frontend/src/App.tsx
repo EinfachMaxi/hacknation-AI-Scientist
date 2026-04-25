@@ -1,0 +1,23 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import Layout from './components/Layout/Layout'
+import Dashboard from './pages/Dashboard/Dashboard'
+import LiveAgentProgress from './pages/LiveAgentProgress/LiveAgentProgress'
+import ExperimentPlanDetail from './pages/ExperimentPlanDetail/ExperimentPlanDetail'
+import KnowledgeGarden from './pages/KnowledgeGarden/KnowledgeGarden'
+
+function App() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/experiments" element={<Dashboard />} />
+        <Route path="/experiments/:id/progress" element={<LiveAgentProgress />} />
+        <Route path="/experiments/:id" element={<ExperimentPlanDetail />} />
+        <Route path="/knowledge-garden" element={<KnowledgeGarden />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  )
+}
+
+export default App

@@ -3,7 +3,7 @@
 > **Compress weeks of experiment planning into minutes.**
 
 **Hackathon:** Fulcrum × Hack-Nation @ World Bank Youth Summit 2026  
-**Stack:** Next.js 15 · FastAPI · Tavily · Supabase · Vercel  
+**Stack:** React.js + TypeScript · FastAPI · Tavily · Supabase · Vercel  
 
 Turn a natural-language scientific hypothesis into a **complete, executable experiment plan** — protocol, materials with real catalog numbers, budget, timeline with dependencies, and validation criteria — in under 60 seconds.
 

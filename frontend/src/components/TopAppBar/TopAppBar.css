@@ -1,0 +1,21 @@
+.topbar { position:fixed; top:0; left:0; width:100%; z-index:50; display:flex; justify-content:space-between; align-items:center; padding:0 24px; height:var(--header-height); background:rgba(15,23,42,0.8); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-bottom:1px solid rgba(255,255,255,0.1); box-shadow:0 0 15px rgba(0,0,0,0.5); }
+.topbar__left { display:flex; align-items:center; gap:32px; }
+.topbar__logo { font-size:20px; font-weight:900; letter-spacing:-0.05em; color:#3b82f6; text-transform:uppercase; cursor:pointer; user-select:none; transition:opacity 0.2s; }
+.topbar__logo:hover { opacity:0.8; }
+.topbar__nav { display:flex; align-items:center; gap:24px; }
+.topbar__nav-link { font-family:'Inter',sans-serif; font-size:14px; font-weight:500; letter-spacing:-0.01em; color:#94a3b8; padding:4px 0; transition:all 0.2s; cursor:pointer; }
+.topbar__nav-link:hover { color:#e2e8f0; background:rgba(255,255,255,0.05); }
+.topbar__nav-link--active { color:#60a5fa; border-bottom:2px solid #3b82f6; padding-bottom:2px; }
+.topbar__right { display:flex; align-items:center; gap:16px; }
+.topbar__search { position:relative; display:flex; align-items:center; }
+.topbar__search-icon { position:absolute; left:12px; font-size:18px!important; color:#64748b; }
+.topbar__search-input { background:rgba(30,41,59,0.5); border:1px solid #334155; border-radius:9999px; padding:6px 16px 6px 36px; font-size:13px; color:#e2e8f0; width:256px; transition:border-color 0.2s; }
+.topbar__search-input:focus { border-color:#3b82f6; box-shadow:0 0 0 1px rgba(59,130,246,0.5); }
+.topbar__new-btn { display:flex; align-items:center; gap:8px; background:#2563eb; color:white; font-size:14px; font-weight:500; padding:6px 16px; border-radius:4px; transition:background 0.2s,transform 0.1s; }
+.topbar__new-btn:hover { background:#3b82f6; }
+.topbar__new-btn:active { transform:scale(0.95); }
+.topbar__actions { display:flex; align-items:center; gap:4px; }
+.topbar__icon-btn { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; color:#94a3b8; transition:all 0.2s; position:relative; }
+.topbar__icon-btn:hover { background:rgba(255,255,255,0.05); color:#e2e8f0; }
+.topbar__notif-dot { position:absolute; top:6px; right:6px; width:8px; height:8px; background:#3b82f6; border-radius:50%; }
+.topbar__avatar { width:32px; height:32px; border-radius:50%; border:1px solid var(--outline-variant); overflow:hidden; display:flex; align-items:center; justify-content:center; background:var(--surface-container-high); cursor:pointer; }
