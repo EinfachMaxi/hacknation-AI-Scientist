@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Live Agent Progress</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4d8eff",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "surface-container-lowest": "#070d1f",
+                        "on-secondary-fixed": "#002109",
+                        "surface-container-high": "#23293c",
+                        "secondary-fixed-dim": "#4ae176",
+                        "tertiary-container": "#ca8100",
+                        "secondary": "#4ae176",
+                        "surface-variant": "#2e3447",
+                        "on-secondary-container": "#004119",
+                        "on-tertiary": "#472a00",
+                        "on-error": "#690005",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "secondary-container": "#00b954",
+                        "primary-fixed": "#d8e2ff",
+                        "on-surface-variant": "#c2c6d6",
+                        "surface-container": "#191f31",
+                        "secondary-fixed": "#6bff8f",
+                        "background": "#0c1324",
+                        "inverse-primary": "#005ac2",
+                        "error-container": "#93000a",
+                        "surface-bright": "#33394c",
+                        "surface-dim": "#0c1324",
+                        "surface-container-highest": "#2e3447",
+                        "outline": "#8c909f",
+                        "on-tertiary-container": "#3e2400",
+                        "surface-tint": "#adc6ff",
+                        "on-primary-fixed": "#001a42",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface": "#0c1324",
+                        "outline-variant": "#424754",
+                        "on-primary-container": "#00285d",
+                        "error": "#ffb4ab",
+                        "surface-container-low": "#151b2d",
+                        "on-primary": "#002e6a",
+                        "primary": "#adc6ff",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-primary-fixed-variant": "#004395",
+                        "on-error-container": "#ffdad6",
+                        "tertiary": "#ffb95f",
+                        "on-background": "#dce1fb",
+                        "on-surface": "#dce1fb",
+                        "inverse-surface": "#dce1fb",
+                        "tertiary-fixed": "#ffddb8",
+                        "on-secondary-fixed-variant": "#005321",
+                        "on-secondary": "#003915",
+                        "inverse-on-surface": "#2a3043"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1440px",
+                        "margin": "24px",
+                        "density": "compact",
+                        "gutter": "16px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-base": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "data-mono": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-base": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "data-mono": ["13px", { "lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-base text-body-base antialiased">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-slate-900/80 backdrop-blur-xl docked full-width top-0 border-b border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+<div class="flex items-center gap-8">
+<span class="text-xl font-black tracking-tighter text-blue-500 uppercase">The AI Scientist</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-blue-400 border-b-2 border-blue-500 pb-1 font-['Inter'] text-sm font-medium tracking-tight hover:bg-white/5 transition-all duration-200 active:scale-95 cursor-pointer" href="#">Experiments</a>
+<a class="text-slate-400 hover:text-slate-200 font-['Inter'] text-sm font-medium tracking-tight hover:bg-white/5 transition-all duration-200 active:scale-95 cursor-pointer" href="#">Knowledge Garden</a>
+<a class="text-slate-400 hover:text-slate-200 font-['Inter'] text-sm font-medium tracking-tight hover:bg-white/5 transition-all duration-200 active:scale-95 cursor-pointer" href="#">Agents</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex bg-surface-container border border-outline-variant rounded-full px-3 py-1.5 items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">search</span>
+<input class="bg-transparent border-none text-data-mono font-data-mono text-on-surface focus:ring-0 w-48 placeholder-on-surface-variant/50" placeholder="Search..." type="text"/>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded font-body-base text-body-base hover:bg-primary-container transition-colors shadow-[0_0_8px_rgba(59,130,246,0.3)]">New Experiment</button>
+<div class="flex gap-2 text-primary">
+<span class="material-symbols-outlined hover:bg-white/5 p-1 rounded transition-all duration-200 cursor-pointer" data-icon="settings">settings</span>
+<span class="material-symbols-outlined hover:bg-white/5 p-1 rounded transition-all duration-200 cursor-pointer" data-icon="notifications">notifications</span>
+</div>
+<img alt="Researcher Profile" class="w-8 h-8 rounded-full border border-outline-variant" data-alt="close-up portrait of professional scientist in modern lab lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAutxlb3DfVCVBoAa_N_acMb4-JgYGoatVByz-y0sZOJsu56WYxL2kwuwT4J_y2OKL_g8mo3TqbdbxN-B711SllGRd86X6ZfbJ1yan38rK9KmfTkiD2cGAaGw9YsH6_3U65NKLm-OiG6KKsacRo5BXrgSEZ2jIfLaqZQ_JUO9a1YPiT_O5u1VwD2G7pSHSxBq-8dAJXpS8xePqAqrdG4McbXxV_6zUnw-MbHZrMJSYIXsVVuq-NIMTeTmV_C3-6d0pIVbPMFYG20ik"/>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-64 z-40 flex flex-col pt-20 bg-slate-950/90 backdrop-blur-2xl docked h-full border-r border-white/10 shadow-2xl">
+<div class="px-6 pb-6 border-b border-white/10">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded bg-primary-container/20 border border-primary/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">science</span>
+</div>
+<div>
+<h2 class="text-blue-400 font-bold font-['Inter'] text-sm tracking-tight">Lab Alpha-7</h2>
+<p class="text-slate-400 font-data-mono text-[10px]">Active Session: 04:12:00</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 py-4 flex flex-col gap-1">
+<a class="bg-blue-500/10 text-blue-400 border-r-2 border-blue-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="text-slate-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="science">science</span>
+<span>Lab Notebook</span>
+</a>
+<a class="text-slate-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="hub">hub</span>
+<span>Agent Network</span>
+</a>
+<a class="text-slate-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="schema">schema</span>
+<span>Knowledge Graph</span>
+</a>
+<a class="text-slate-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="inventory_2">inventory_2</span>
+<span>Archive</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-white/10 py-4 flex flex-col gap-1">
+<a class="text-slate-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="memory">memory</span>
+<span>System Status</span>
+</a>
+<a class="text-slate-500 flex items-center gap-3 px-4 py-3 font-['Inter'] text-xs font-semibold uppercase tracking-widest hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="help_outline">help_outline</span>
+<span>Documentation</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pt-24 pl-64 pr-6 pb-12 min-h-screen">
+<div class="max-w-container-max mx-auto space-y-gutter">
+<!-- Hypothesis Banner -->
+<section class="bg-surface-container border border-primary/30 rounded-lg p-6 shadow-[0_0_15px_rgba(59,130,246,0.1)] relative overflow-hidden backdrop-blur-md">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
+<div class="flex items-start gap-4">
+<div class="mt-1 flex-shrink-0 relative">
+<span class="material-symbols-outlined text-primary text-3xl animate-pulse">model_training</span>
+<div class="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full animate-ping"></div>
+<div class="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full"></div>
+</div>
+<div class="flex-1">
+<h1 class="font-headline-md text-headline-md text-on-surface mb-2">Generating Experimental Protocol</h1>
+<p class="font-body-base text-body-base text-on-surface-variant max-w-4xl">
+<span class="font-bold text-primary">Hypothesis:</span> Application of nanostructured lipid carriers (NLCs) loaded with specialized pro-resolving mediators (SPMs) will significantly accelerate tissue regeneration in compromised diabetic wound models compared to standard hydrogel therapies.
+                        </p>
+</div>
+<div class="flex-shrink-0 text-right">
+<div class="font-data-mono text-data-mono text-primary mb-1">T+ 00:02:45</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant bg-surface-container-high px-2 py-1 rounded border border-outline-variant inline-block">SWARM ACTIVE</div>
+</div>
+</div>
+</section>
+<!-- Agent Grid -->
+<section class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-gutter">
+<!-- Agent 1: Literature Scout -->
+<div class="bg-surface-container-high border border-outline-variant rounded-lg p-5 flex flex-col shadow-lg backdrop-blur-md relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-slate-800">
+<div class="h-full bg-secondary w-4/5"></div>
+</div>
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container border border-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container text-sm">menu_book</span>
+</div>
+<h3 class="font-headline-md text-[18px] text-on-surface">Literature Scout</h3>
+</div>
+<span class="font-data-mono text-data-mono text-secondary">80% COMPLETE</span>
+</div>
+<div class="flex-1 bg-surface-dim border border-outline-variant/50 rounded p-3 mb-4 font-data-mono text-[11px] text-on-surface-variant overflow-hidden flex flex-col gap-1">
+<div class="text-primary">&gt; Initializing PubMed Query...</div>
+<div>&gt; GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&amp;term=nanostructured+lipid+carriers+AND+wound+healing</div>
+<div class="text-secondary">&gt; 243 results found. Filtering for diabetic models...</div>
+<div>&gt; Extracting methodology from PMC8745321...</div>
+<div class="text-tertiary-fixed-dim animate-pulse">_ Analyzing pharmacokinetic profiles...</div>
+</div>
+<div class="flex justify-between items-end mt-auto pt-2 border-t border-outline-variant/30">
+<span class="font-label-caps text-label-caps text-outline">STATUS: EXTRACTING</span>
+<div class="flex gap-1">
+<div class="w-1.5 h-4 bg-secondary"></div>
+<div class="w-1.5 h-4 bg-secondary"></div>
+<div class="w-1.5 h-4 bg-secondary"></div>
+<div class="w-1.5 h-4 bg-secondary"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+</div>
+</div>
+</div>
+<!-- Agent 2: Protocol Designer -->
+<div class="bg-surface-container-high border border-outline-variant rounded-lg p-5 flex flex-col shadow-lg backdrop-blur-md relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-slate-800">
+<div class="h-full bg-primary w-[45%]"></div>
+</div>
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container border border-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-sm">architecture</span>
+</div>
+<h3 class="font-headline-md text-[18px] text-on-surface">Protocol Designer</h3>
+</div>
+<span class="font-data-mono text-data-mono text-primary">45% COMPLETE</span>
+</div>
+<div class="flex-1 bg-surface-dim border border-outline-variant/50 rounded p-3 mb-4 font-data-mono text-[11px] text-on-surface-variant overflow-hidden flex flex-col gap-1">
+<div>&gt; Awaiting inputs from Literature Scout...</div>
+<div>&gt; Received partial context: NLC synthesis parameters.</div>
+<div class="text-primary">&gt; Structuring Phase 1: NLC Preparation</div>
+<div>&gt; Establishing sonication intervals (3x 30s at 40W)</div>
+<div class="text-tertiary-fixed-dim animate-pulse">_ Generating phase diagrams for lipid selection...</div>
+</div>
+<div class="flex justify-between items-end mt-auto pt-2 border-t border-outline-variant/30">
+<span class="font-label-caps text-label-caps text-outline">STATUS: STRUCTURING STEPS</span>
+<div class="flex gap-1">
+<div class="w-1.5 h-4 bg-primary"></div>
+<div class="w-1.5 h-4 bg-primary"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+</div>
+</div>
+</div>
+<!-- Agent 3: Materials Agent -->
+<div class="bg-surface-container-high border border-outline-variant rounded-lg p-5 flex flex-col shadow-lg backdrop-blur-md relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-slate-800">
+<div class="h-full bg-tertiary w-[20%]"></div>
+</div>
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-container border border-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container text-sm">science</span>
+</div>
+<h3 class="font-headline-md text-[18px] text-on-surface">Materials Agent</h3>
+</div>
+<span class="font-data-mono text-data-mono text-tertiary">20% COMPLETE</span>
+</div>
+<div class="flex-1 bg-surface-dim border border-outline-variant/50 rounded p-3 mb-4 font-data-mono text-[11px] text-on-surface-variant overflow-hidden flex flex-col gap-1">
+<div>&gt; Initializing inventory cross-reference...</div>
+<div>&gt; Querying Lab Alpha-7 local database...</div>
+<div class="text-error">&gt; Warning: Precirol ATO 5 stock low (45g remaining)</div>
+<div>&gt; POST https://api.sigmaaldrich.com/v1/catalog/search?query=Resolvin+D1</div>
+<div class="text-tertiary-fixed-dim animate-pulse">_ Awaiting vendor API response...</div>
+</div>
+<div class="flex justify-between items-end mt-auto pt-2 border-t border-outline-variant/30">
+<span class="font-label-caps text-label-caps text-outline">STATUS: IDENTIFYING CATALOG NUMBERS</span>
+<div class="flex gap-1">
+<div class="w-1.5 h-4 bg-tertiary"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+<div class="w-1.5 h-4 bg-slate-700"></div>
+</div>
+</div>
+</div>
+<!-- Agent 4: Budget Agent -->
+<div class="bg-surface-container border border-outline-variant/50 rounded-lg p-5 flex flex-col shadow-lg backdrop-blur-md opacity-60">
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-sm">account_balance</span>
+</div>
+<h3 class="font-headline-md text-[18px] text-outline">Budget Agent</h3>
+</div>
+<span class="font-data-mono text-data-mono text-outline">0% COMPLETE</span>
+</div>
+<div class="flex-1 bg-surface-dim border border-outline-variant/30 rounded p-3 mb-4 font-data-mono text-[11px] text-outline overflow-hidden flex flex-col gap-1 items-center justify-center">
+<span class="material-symbols-outlined mb-2 opacity-50">hourglass_empty</span>
+<div>Waiting for Materials Agent...</div>
+</div>
+<div class="flex justify-between items-end mt-auto pt-2 border-t border-outline-variant/30">
+<span class="font-label-caps text-label-caps text-outline">STATUS: DORMANT</span>
+<div class="flex gap-1">
+<div class="w-1.5 h-4 bg-slate-800"></div>
+<div class="w-1.5 h-4 bg-slate-800"></div>
+<div class="w-1.5 h-4 bg-slate-800"></div>
+<div class="w-1.5 h-4 bg-slate-800"></div>
+<div class="w-1.5 h-4 bg-slate-800"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</body></html>

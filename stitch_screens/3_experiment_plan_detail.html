@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The AI Scientist - Experiment Plan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined { font-family: 'Material Symbols Outlined'; }
+        /* Ensure specific font mappings for data-mono align with JetBrains */
+        .font-data-mono, .font-label-caps { font-family: 'JetBrains Mono', monospace; }
+        .font-body-base, .font-headline-md, .font-display-lg { font-family: 'Inter', sans-serif; }
+        
+        /* Custom scrollbar for high-tech feel */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #424754; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8c909f; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary-container": "#4d8eff", "on-tertiary-fixed-variant": "#653e00", "surface-container-lowest": "#070d1f",
+                "on-secondary-fixed": "#002109", "surface-container-high": "#23293c", "secondary-fixed-dim": "#4ae176",
+                "tertiary-container": "#ca8100", "secondary": "#4ae176", "surface-variant": "#2e3447",
+                "on-secondary-container": "#004119", "on-tertiary": "#472a00", "on-error": "#690005",
+                "tertiary-fixed-dim": "#ffb95f", "secondary-container": "#00b954", "primary-fixed": "#d8e2ff",
+                "on-surface-variant": "#c2c6d6", "surface-container": "#191f31", "secondary-fixed": "#6bff8f",
+                "background": "#0c1324", "inverse-primary": "#005ac2", "error-container": "#93000a",
+                "surface-bright": "#33394c", "surface-dim": "#0c1324", "surface-container-highest": "#2e3447",
+                "outline": "#8c909f", "on-tertiary-container": "#3e2400", "surface-tint": "#adc6ff",
+                "on-primary-fixed": "#001a42", "on-tertiary-fixed": "#2a1700", "surface": "#0c1324",
+                "outline-variant": "#424754", "on-primary-container": "#00285d", "error": "#ffb4ab",
+                "surface-container-low": "#151b2d", "on-primary": "#002e6a", "primary": "#adc6ff",
+                "primary-fixed-dim": "#adc6ff", "on-primary-fixed-variant": "#004395", "on-error-container": "#ffdad6",
+                "tertiary": "#ffb95f", "on-background": "#dce1fb", "on-surface": "#dce1fb",
+                "inverse-surface": "#dce1fb", "tertiary-fixed": "#ffddb8", "on-secondary-fixed-variant": "#005321",
+                "on-secondary": "#003915", "inverse-on-surface": "#2a3043"
+              },
+              borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+              spacing: { "container-max": "1440px", "margin": "24px", "density": "compact", "gutter": "16px", "unit": "4px" },
+              fontFamily: {
+                "body-base": ["Inter"], "label-caps": ["JetBrains Mono"], "headline-md": ["Inter"],
+                "display-lg": ["Inter"], "data-mono": ["JetBrains Mono"]
+              },
+              fontSize: {
+                "body-base": ["14px", { lineHeight: "1.6", fontWeight: "400" }],
+                "label-caps": ["11px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700" }],
+                "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "600" }],
+                "display-lg": ["48px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }],
+                "data-mono": ["13px", { lineHeight: "1.4", letterSpacing: "-0.01em", fontWeight: "500" }]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-base overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-slate-900/80 backdrop-blur-xl docked full-width top-0 border-b border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+<div class="flex items-center gap-6">
+<div class="text-xl font-black tracking-tighter text-blue-500 uppercase">The AI Scientist</div>
+<nav class="flex items-center gap-6 ml-8">
+<a class="font-['Inter'] text-sm font-medium tracking-tight text-blue-400 border-b-2 border-blue-500 pb-1 hover:bg-white/5 transition-all duration-200 active:scale-95 cursor-pointer" href="#">Experiments</a>
+<a class="font-['Inter'] text-sm font-medium tracking-tight text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-200 active:scale-95 cursor-pointer" href="#">Knowledge Garden</a>
+<a class="font-['Inter'] text-sm font-medium tracking-tight text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-200 active:scale-95 cursor-pointer" href="#">Agents</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative text-slate-400">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]">search</span>
+<input class="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 pl-9 pr-4 text-sm focus:outline-none focus:border-blue-500 text-slate-200 w-64 placeholder-slate-500 transition-colors" placeholder="Search experiments..." type="text"/>
+</div>
+<button class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-1.5 rounded flex items-center gap-2 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[18px]">add</span> New Experiment
+            </button>
+<div class="flex items-center gap-2 text-slate-400">
+<button class="p-2 hover:bg-white/5 rounded-full hover:text-slate-200 transition-colors active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<button class="p-2 hover:bg-white/5 rounded-full hover:text-slate-200 transition-colors active:scale-95 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-slate-700 ml-2 overflow-hidden border border-slate-600">
+<img alt="Researcher Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0gkaqfkIZSaFFCOsbxnj3LFi1GMile3mD2CgO7G6W7b_bv8U--jZzRgPhjcn2kK54bFZu7SELzvqvavZLKY035vYnK0JWw6Cx1iW8EJ0Ct4PkyXWez_uk90p5nqlSIfHqWhFLXzDUM7Y2ZcLY3c7It64Z8rxjCS4GFLNRgSVXYquHlOMPvGMmICrPClSJVN6J3dlkb6soM3Z3m1C0vZXpjLdDxmc69mpHG_lnEWiCVb13I5wmpej2tIKhWg6hiMgS8oER046YSsI"/>
+</div>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-screen w-64 z-40 flex flex-col pt-20 bg-slate-950/90 backdrop-blur-2xl docked h-full left-0 border-r border-white/10 shadow-2xl">
+<div class="px-6 pb-6 border-b border-white/10 mb-4 flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-blue-900/50 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
+                    A7
+                </div>
+<div>
+<div class="font-['Inter'] text-sm font-bold text-slate-200">Lab Alpha-7</div>
+<div class="font-['Inter'] text-xs text-slate-500">Active Session: 04:12:00</div>
+</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col overflow-y-auto">
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+            </a>
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest bg-blue-500/10 text-blue-400 border-r-2 border-blue-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">science</span> Lab Notebook
+            </a>
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">hub</span> Agent Network
+            </a>
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">schema</span> Knowledge Graph
+            </a>
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span> Archive
+            </a>
+</div>
+<div class="border-t border-white/10 pt-4 pb-6 mt-auto">
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">memory</span> System Status
+            </a>
+<a class="font-['Inter'] text-xs font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-3 px-4 py-3 hover:bg-white/5 hover:text-slate-200 transition-colors hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">help_outline</span> Documentation
+            </a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-16 h-screen overflow-y-auto overflow-x-hidden">
+<div class="max-w-[1440px] mx-auto p-margin flex flex-col gap-margin">
+<!-- Page Header -->
+<header class="flex justify-between items-start border-b border-outline-variant pb-margin">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="flex items-center gap-3">
+<span class="bg-surface-container-high border border-outline-variant rounded px-2 py-1 font-label-caps text-label-caps text-primary">DRAFT</span>
+<h1 class="font-headline-md text-headline-md text-on-surface">EXP-8492: Graphene Oxide Sensor Calibration</h1>
+</div>
+<p class="font-body-base text-body-base text-on-surface-variant">
+<span class="text-on-surface font-medium">Hypothesis:</span> Optimizing the thermal reduction temperature to 450°C in an argon atmosphere will increase the sensor's sensitivity to volatile organic compounds (VOCs) by 25% compared to standard chemical reduction methods.
+                    </p>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container/60 border border-primary text-primary rounded hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+<span class="font-label-caps text-label-caps">EXPORT PDF</span>
+</button>
+</header>
+<!-- Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Left Column (Tabs + Content) -->
+<div class="col-span-8 lg:col-span-9 flex flex-col gap-margin">
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/50 w-full overflow-x-auto hide-scrollbar">
+<button class="flex items-center gap-2 px-4 py-3 border-b-2 border-primary text-primary bg-primary/5">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-label-caps text-label-caps">PROTOCOL</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container/30 transition-colors">
+<span class="material-symbols-outlined text-[18px]">science</span>
+<span class="font-label-caps text-label-caps">MATERIALS</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container/30 transition-colors">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+<span class="font-label-caps text-label-caps">BUDGET</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container/30 transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+<span class="font-label-caps text-label-caps">TIMELINE</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container/30 transition-colors">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span class="font-label-caps text-label-caps">VALIDATION</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container/30 transition-colors">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+<span class="font-label-caps text-label-caps">LITERATURE</span>
+</button>
+</div>
+<!-- Tab Content: Protocol -->
+<div class="flex flex-col gap-4">
+<!-- Toolbar -->
+<div class="flex justify-between items-center bg-surface-container-low border border-outline-variant/40 rounded p-3 backdrop-blur-md">
+<div class="flex items-center gap-4">
+<span class="font-data-mono text-data-mono text-on-surface-variant">EST. TOTAL TIME: 14h 30m</span>
+<div class="w-px h-4 bg-outline-variant"></div>
+<span class="font-data-mono text-data-mono text-on-surface-variant">STEPS: 05</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label-caps text-label-caps text-on-surface">SCIENTIST REVIEW</span>
+<button class="relative inline-flex h-5 w-9 items-center rounded-full bg-primary transition-colors focus:outline-none">
+<span class="translate-x-5 inline-block h-3 w-3 transform rounded-full bg-surface transition-transform"></span>
+</button>
+</div>
+</div>
+<!-- Protocol Steps List -->
+<div class="flex flex-col gap-3">
+<!-- Step 1 -->
+<div class="group flex gap-4 bg-surface-container/40 border border-outline/10 rounded-lg p-4 hover:bg-surface-container/60 hover:border-outline/30 transition-all">
+<div class="flex-shrink-0 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center font-data-mono text-data-mono text-primary shadow-[0_0_8px_rgba(59,130,246,0.1)]">01</div>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<h3 class="font-body-base text-body-base font-medium text-on-surface">Substrate Preparation</h3>
+<span class="font-data-mono text-data-mono text-on-surface-variant bg-surface px-2 py-1 rounded border border-outline/10">30 min</span>
+</div>
+<p class="font-body-base text-body-base text-on-surface-variant">Clean the SiO2/Si substrates using a standard RCA sequence. Rinse thoroughly with deionized water (18.2 MΩ·cm) and blow dry with N2 gas.</p>
+<div class="bg-surface-container-highest border border-outline-variant/50 rounded px-3 py-2 mt-2">
+<div class="font-label-caps text-label-caps text-outline mb-1">EQUIPMENT</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">Ultrasonic Bath, Spin Coater, N2 Gun</div>
+</div>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="group flex gap-4 bg-surface-container/40 border border-outline/10 rounded-lg p-4 hover:bg-surface-container/60 hover:border-outline/30 transition-all">
+<div class="flex-shrink-0 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center font-data-mono text-data-mono text-primary shadow-[0_0_8px_rgba(59,130,246,0.1)]">02</div>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<h3 class="font-body-base text-body-base font-medium text-on-surface">Graphene Oxide Spin Coating</h3>
+<span class="font-data-mono text-data-mono text-on-surface-variant bg-surface px-2 py-1 rounded border border-outline/10">45 min</span>
+</div>
+<p class="font-body-base text-body-base text-on-surface-variant">Dispense 50 µL of 2mg/mL GO aqueous dispersion onto the prepared substrate. Spin at 3000 rpm for 60s to achieve a uniform monolayer.</p>
+<!-- Warning Box -->
+<div class="bg-error-container/20 border border-error/50 rounded p-3 mt-2 flex gap-3 items-start">
+<span class="material-symbols-outlined text-error text-[20px]">warning</span>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-error mb-1">CRITICAL NOTE</span>
+<span class="font-body-base text-body-base text-on-surface">Ensure dispersion is completely homogenized before dispensing to prevent aggregate formation which degrades sensor baseline. Include negative control (bare SiO2) for baseline normalization.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="group flex gap-4 bg-surface-container/40 border border-outline/10 rounded-lg p-4 hover:bg-surface-container/60 hover:border-outline/30 transition-all">
+<div class="flex-shrink-0 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center font-data-mono text-data-mono text-primary shadow-[0_0_8px_rgba(59,130,246,0.1)]">03</div>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<h3 class="font-body-base text-body-base font-medium text-on-surface">Thermal Reduction</h3>
+<span class="font-data-mono text-data-mono text-on-surface-variant bg-surface px-2 py-1 rounded border border-outline/10">12 h</span>
+</div>
+<p class="font-body-base text-body-base text-on-surface-variant">Transfer samples to the tube furnace. Purge with Argon (200 sccm) for 30 mins. Ramp temperature to 450°C at 5°C/min. Hold for 2 hours, then allow to naturally cool to room temperature under continuous Argon flow.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Sidebar Insights) -->
+<div class="col-span-4 lg:col-span-3 flex flex-col gap-margin">
+<!-- Knowledge Garden Insight -->
+<div class="bg-surface-container border border-tertiary-container/30 rounded-xl overflow-hidden backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)] relative">
+<!-- Glow effect -->
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tertiary/20 via-tertiary to-tertiary/20"></div>
+<div class="p-4 flex flex-col gap-4">
+<div class="flex items-center gap-2 text-tertiary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-caps text-label-caps">KNOWLEDGE GARDEN INSIGHT</span>
+</div>
+<p class="font-body-base text-body-base text-on-surface">
+                                Protocol adjusted based on historical data. Previous calibrations using chemical reduction (Hydrazine) showed a 15% variance in baseline resistance over 48 hours.
+                            </p>
+<div class="bg-surface border border-outline-variant/30 rounded p-3">
+<div class="font-label-caps text-label-caps text-outline mb-2">REFERENCED EXPERIMENT</div>
+<a class="font-data-mono text-data-mono text-primary hover:underline flex items-center justify-between" href="#">
+<span>EXP-7102</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+<div class="font-body-base text-body-base text-on-surface-variant mt-1 text-xs">
+                                    "Long-term stability of chemically reduced GO gas sensors"
+                                </div>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-outline-variant/20">
+<div class="w-2 h-2 rounded-full bg-secondary-container"></div>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-[11px]">System confidence: 94%</span>
+</div>
+</div>
+</div>
+<!-- Quick Stats/Meta -->
+<div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 flex flex-col gap-3">
+<div class="font-label-caps text-label-caps text-outline mb-1">EXPERIMENT METADATA</div>
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
+<span class="font-body-base text-body-base text-on-surface-variant">Author Agent</span>
+<span class="font-data-mono text-data-mono text-on-surface">Chem_Synth_V2</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
+<span class="font-body-base text-body-base text-on-surface-variant">Version</span>
+<span class="font-data-mono text-data-mono text-on-surface">1.0.4-draft</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-base text-body-base text-on-surface-variant">Target Metric</span>
+<span class="font-data-mono text-data-mono text-on-surface">ΔR/R0 &gt; 20% @ 10ppm</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
