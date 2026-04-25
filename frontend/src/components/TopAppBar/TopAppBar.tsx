@@ -3,7 +3,7 @@ import './TopAppBar.css'
 
 const navLinks = [
   { label: 'Experiments', path: '/' },
-  { label: 'Agents', path: '#' },
+  { label: 'Agents', path: '/agents' },
 ]
 
 interface TopAppBarProps {
@@ -16,6 +16,7 @@ export default function TopAppBar({ sidebarOpen, onToggleSidebar }: TopAppBarPro
   const location = useLocation()
 
   const isActive = (path: string) => {
+    if (path === '/agents') return location.pathname === '/agents'
     if (path === '/') return location.pathname === '/' || location.pathname.startsWith('/experiments')
     return location.pathname.startsWith(path)
   }
@@ -44,7 +45,7 @@ export default function TopAppBar({ sidebarOpen, onToggleSidebar }: TopAppBarPro
               type="button"
               key={link.label}
               className={`topbar__nav-link ${isActive(link.path) ? 'topbar__nav-link--active' : ''}`}
-              onClick={() => { if (link.path !== '#') navigate(link.path) }}
+              onClick={() => navigate(link.path)}
               aria-current={isActive(link.path) ? 'page' : undefined}
             >
               {link.label}

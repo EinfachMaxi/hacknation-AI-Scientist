@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout/Layout'
 import Dashboard from './pages/Dashboard/Dashboard'
+import Agents from './pages/Agents/Agents'
 import LiveAgentProgress from './pages/LiveAgentProgress/LiveAgentProgress'
 import ExperimentPlanDetail from './pages/ExperimentPlanDetail/ExperimentPlanDetail'
 import KnowledgeGarden from './pages/KnowledgeGarden/KnowledgeGarden'
@@ -10,6 +11,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/agents" element={<Agents />} />
         <Route path="/experiments" element={<Dashboard />} />
         <Route path="/experiments/:id/progress" element={<LiveAgentProgress />} />
         <Route path="/experiments/:id" element={<ExperimentPlanDetail />} />
