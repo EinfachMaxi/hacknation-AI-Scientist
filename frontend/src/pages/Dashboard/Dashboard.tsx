@@ -32,9 +32,6 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="dashboard__input-actions">
-            <button className="dashboard__attach-btn glass-panel font-label-caps" id="attach-context-btn">
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>attach_file</span>Attach Context
-            </button>
             <button
               className="dashboard__generate-btn btn-glow font-label-caps"
               onClick={async () => {

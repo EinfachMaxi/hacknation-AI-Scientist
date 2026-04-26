@@ -13,8 +13,8 @@
 .topbar__search-icon { position:absolute; left:12px; font-size:18px!important; color:var(--outline); }
 .topbar__search-input { background:var(--surface-container); border:1px solid var(--outline-variant); border-radius:9999px; padding:6px 16px 6px 36px; font-size:13px; color:var(--on-surface); width:256px; transition:border-color 0.2s; }
 .topbar__search-input:focus { border-color:var(--primary); box-shadow:none; }
-.topbar__new-btn { display:flex; align-items:center; gap:8px; background:var(--primary-container); color:var(--on-primary); font-size:14px; font-weight:500; padding:6px 16px; border-radius:6px; transition:background 0.2s,transform 0.1s; }
-.topbar__new-btn:hover { background:var(--primary); }
+.topbar__new-btn { display:flex; align-items:center; gap:8px; background:var(--primary); color:var(--on-primary); font-size:14px; font-weight:500; padding:6px 16px; border-radius:6px; transition:background 0.2s,transform 0.1s; }
+.topbar__new-btn:hover { background:var(--primary-fixed-dim); }
 .topbar__new-btn:active { transform:scale(0.95); }
 .topbar__actions { display:flex; align-items:center; gap:4px; }
 .topbar__icon-btn { display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; color:var(--on-surface-variant); transition:all 0.2s; position:relative; }

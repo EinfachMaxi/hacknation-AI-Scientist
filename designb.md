@@ -9,91 +9,92 @@ Diese Datei ist die zentrale Stelle fuer UI-Farben, Abstaende und visuelle Token
 - Das Script `sync:design` aktualisiert automatisch `frontend/src/styles/design-tokens.css`.
 
 <!-- DESIGN_TOKENS_START -->
+
 ```css
 :root {
-  --primary: #b67c52;
-  --primary-container: #e2b892;
-  --on-primary: #fffaf3;
-  --on-primary-container: #3f2817;
-  --primary-fixed: #c89468;
-  --primary-fixed-dim: #aa7147;
-  --inverse-primary: #d7a67a;
-  --secondary: #8f9a6d;
-  --secondary-container: #d7debd;
-  --on-secondary: #fdfdf7;
-  --on-secondary-container: #2f3521;
-  --secondary-fixed: #a4b280;
-  --secondary-fixed-dim: #849160;
-  --tertiary: #a88d6d;
-  --tertiary-container: #e3d4bf;
-  --on-tertiary: #fffaf4;
-  --on-tertiary-container: #3a2f24;
-  --tertiary-fixed: #baa081;
-  --tertiary-fixed-dim: #9a8061;
-  --error: #b85b5b;
-  --error-container: #f0c9c9;
-  --on-error: #fff7f7;
-  --on-error-container: #421d1d;
-  --background: #f6efe2;
-  --on-background: #3f372f;
-  --surface: #fffaf0;
-  --surface-dim: #f0e7d9;
-  --surface-bright: #fffdf7;
-  --surface-container-lowest: #fffdf9;
-  --surface-container-low: #f9f2e6;
-  --surface-container: #f3eadc;
-  --surface-container-high: #ece1d2;
-  --surface-container-highest: #e6d8c8;
-  --surface-variant: #dfcfbb;
-  --on-surface: #3f372f;
-  --on-surface-variant: #6f6255;
-  --surface-tint: #caa882;
-  --inverse-surface: #4b4035;
-  --inverse-on-surface: #f9f1e5;
-  --outline: #a89682;
-  --outline-variant: #ccbca9;
+  --primary: #6e51b8;
+  --primary-container: #8a70cc;
+  --on-primary: #ffffff;
+  --on-primary-container: #ffffff;
+  --primary-fixed: #7c5ec0;
+  --primary-fixed-dim: #5d419f;
+  --inverse-primary: #b8a3e0;
+  --secondary: #8a7fa8;
+  --secondary-container: #ebe6f3;
+  --on-secondary: #ffffff;
+  --on-secondary-container: #2a2438;
+  --secondary-fixed: #9d92ba;
+  --secondary-fixed-dim: #786d96;
+  --tertiary: #b8a5dd;
+  --tertiary-container: #f2ecfa;
+  --on-tertiary: #ffffff;
+  --on-tertiary-container: #2d2440;
+  --tertiary-fixed: #c4b4e3;
+  --tertiary-fixed-dim: #a591ce;
+  --error: #d97a85;
+  --error-container: #f8dde0;
+  --on-error: #ffffff;
+  --on-error-container: #481b22;
+  --background: #ffffff;
+  --on-background: #1f1d24;
+  --surface: #ffffff;
+  --surface-dim: #f7f5fb;
+  --surface-bright: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #fbf9fe;
+  --surface-container: #f6f3fb;
+  --surface-container-high: #f0ecf7;
+  --surface-container-highest: #e8e2f2;
+  --surface-variant: #ece8f3;
+  --on-surface: #1f1d24;
+  --on-surface-variant: #5d556e;
+  --surface-tint: #6e51b8;
+  --inverse-surface: #2a2438;
+  --inverse-on-surface: #f7f5fb;
+  --outline: #b5adc4;
+  --outline-variant: #ddd6e8;
 
-  --text-placeholder: rgba(111, 98, 85, 0.55);
-  --shadow-focus-primary: 0 0 12px rgba(182, 124, 82, 0.28);
+  --text-placeholder: rgba(93, 85, 110, 0.5);
+  --shadow-focus-primary: 0 0 0 3px rgba(110, 81, 184, 0.22);
 
-  --border-muted: rgba(139, 120, 100, 0.16);
-  --border-muted-strong: rgba(139, 120, 100, 0.3);
-  --border-weak: rgba(111, 98, 85, 0.35);
-  --border-weaker: rgba(111, 98, 85, 0.28);
-  --border-faint: rgba(111, 98, 85, 0.22);
-  --border-faintest: rgba(111, 98, 85, 0.14);
+  --border-muted: rgba(60, 50, 80, 0.08);
+  --border-muted-strong: rgba(60, 50, 80, 0.16);
+  --border-weak: rgba(60, 50, 80, 0.22);
+  --border-weaker: rgba(60, 50, 80, 0.16);
+  --border-faint: rgba(60, 50, 80, 0.12);
+  --border-faintest: rgba(60, 50, 80, 0.08);
 
-  --bg-hover-ghost: rgba(111, 98, 85, 0.06);
-  --bg-error-soft: rgba(184, 91, 91, 0.14);
-  --border-error-soft: rgba(184, 91, 91, 0.35);
-  --bg-success-soft: rgba(143, 154, 109, 0.12);
-  --border-success-soft: rgba(143, 154, 109, 0.3);
-  --bg-warning-soft: rgba(190, 143, 84, 0.14);
-  --border-warning-soft: rgba(190, 143, 84, 0.32);
+  --bg-hover-ghost: rgba(110, 81, 184, 0.06);
+  --bg-error-soft: rgba(217, 122, 133, 0.1);
+  --border-error-soft: rgba(217, 122, 133, 0.28);
+  --bg-success-soft: rgba(155, 192, 168, 0.12);
+  --border-success-soft: rgba(155, 192, 168, 0.3);
+  --bg-warning-soft: rgba(229, 192, 128, 0.14);
+  --border-warning-soft: rgba(229, 192, 128, 0.3);
 
-  --kg-accent-bg: rgba(182, 124, 82, 0.16);
-  --kg-accent-border: rgba(182, 124, 82, 0.36);
-  --kg-tag-bg: rgba(182, 124, 82, 0.1);
-  --kg-tag-border: rgba(182, 124, 82, 0.22);
-  --kg-tag-text: #9f6339;
-  --kg-tag-neutral-text: #6f6255;
+  --kg-accent-bg: rgba(110, 81, 184, 0.12);
+  --kg-accent-border: rgba(110, 81, 184, 0.32);
+  --kg-tag-bg: rgba(110, 81, 184, 0.08);
+  --kg-tag-border: rgba(110, 81, 184, 0.22);
+  --kg-tag-text: #5d419f;
+  --kg-tag-neutral-text: #5d556e;
 
-  --network-bg-start: rgba(246, 239, 226, 0.86);
-  --network-bg-end: rgba(233, 222, 205, 0.95);
-  --network-line: rgba(139, 120, 100, 0.34);
-  --network-line-active: rgba(182, 124, 82, 0.9);
-  --network-line-soft: rgba(143, 154, 109, 0.55);
-  --network-node-bg: rgba(255, 250, 240, 0.92);
-  --network-node-outline: rgba(139, 120, 100, 0.3);
-  --network-node-active-border: rgba(182, 124, 82, 0.62);
-  --network-node-active-glow: 0 0 12px rgba(182, 124, 82, 0.24);
-  --network-node-materials-border: rgba(168, 141, 109, 0.62);
-  --network-node-validation-border: rgba(143, 154, 109, 0.58);
-  --network-message-success-border: rgba(143, 154, 109, 0.4);
-  --network-message-warn-border: rgba(184, 91, 91, 0.4);
-  --network-message-info-border: rgba(182, 124, 82, 0.4);
+  --network-bg-start: #ffffff;
+  --network-bg-end: #ffffff;
+  --network-line: rgba(60, 50, 80, 0.18);
+  --network-line-active: rgba(110, 81, 184, 0.9);
+  --network-line-soft: rgba(110, 81, 184, 0.4);
+  --network-node-bg: #ffffff;
+  --network-node-outline: rgba(60, 50, 80, 0.18);
+  --network-node-active-border: rgba(110, 81, 184, 0.6);
+  --network-node-active-glow: 0 0 0 4px rgba(110, 81, 184, 0.2);
+  --network-node-materials-border: rgba(138, 112, 204, 0.55);
+  --network-node-validation-border: rgba(155, 192, 168, 0.55);
+  --network-message-success-border: rgba(155, 192, 168, 0.4);
+  --network-message-warn-border: rgba(217, 122, 133, 0.4);
+  --network-message-info-border: rgba(110, 81, 184, 0.4);
 
-  --progress-empty-bar: #d7c9b7;
+  --progress-empty-bar: #ece8f3;
 
   --unit: 4px;
   --gutter: 16px;
@@ -103,4 +104,5 @@ Diese Datei ist die zentrale Stelle fuer UI-Farben, Abstaende und visuelle Token
   --header-height: 64px;
 }
 ```
+
 <!-- DESIGN_TOKENS_END -->
