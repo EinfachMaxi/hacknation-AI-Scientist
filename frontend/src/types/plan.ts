@@ -158,6 +158,15 @@ export interface GraphNodeTooling {
   last_tool_status?: string
 }
 
+export interface GraphNodeRationale {
+  agent_key: string
+  score: number
+  matched_capabilities: string[]
+  matched_keywords: string[]
+  inclusion_reason: string
+  depends_on: string[]
+}
+
 export interface GraphNode {
   id: string
   label: string
@@ -166,6 +175,7 @@ export interface GraphNode {
   state: 'pending' | 'ready' | 'running' | 'completed' | 'failed' | 'skipped'
   progress_pct: number
   tooling?: GraphNodeTooling
+  rationale?: GraphNodeRationale | null
 }
 
 export interface GraphEdge {

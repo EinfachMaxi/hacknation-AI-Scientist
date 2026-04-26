@@ -218,6 +218,29 @@ export async function acceptPlanDraft(planId: string): Promise<AcceptDraftRespon
   return (await response.json()) as AcceptDraftResponse
 }
 
+export interface CorrectionPayload {
+  experiment_type: string
+  field_path: string
+  old_value: string
+  new_value: string
+  reason: string
+}
+
+export async function submitCorrection(
+  planId: string,
+  payload: CorrectionPayload,
+): Promise<{ status: string; node_id: string }> {
+  const response = await fetch(`${API_BASE_URL}/plans/${planId}/corrections`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    throw new Error('Could not submit correction')
+  }
+  return (await response.json()) as { status: string; node_id: string }
+}
+
 export interface KnowledgeFetchOptions {
   status?: 'active' | 'pending' | 'archived' | 'all'
 }

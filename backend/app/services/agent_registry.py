@@ -134,6 +134,25 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
             "max_tool_calls": 2,
         },
     },
+    {
+        "key": "validation",
+        "name": "Validation Agent",
+        "role": "Define hypothesis-specific success criteria, controls and stats plan",
+        "personality": "Rigorous and measurement-driven",
+        "capabilities": ["validation", "controls", "success_criteria", "statistics"],
+        "prompt_template": (
+            "Derive measurable success criteria, the required controls and a "
+            "concrete statistical plan that fits the hypothesis, protocol and "
+            "materials of this experiment."
+        ),
+        "is_active": True,
+        "sort_order": 70,
+        "metadata": {
+            "allowed_tools": [],
+            "max_tool_calls": 0,
+            "depends_on": ["protocol", "materials"],
+        },
+    },
 ]
 
 
@@ -146,6 +165,20 @@ class AgentRegistry:
         if not rows:
             await self._repository.upsert_agents(DEFAULT_AGENT_DEFINITIONS)
             rows = await self._repository.list_agents()
+        else:
+            # Idempotenter Backfill: wenn die DB schon Agents kennt, aber neue
+            # Default-Eintraege (z.B. der Validation-Agent) noch nicht vorhanden
+            # sind, ergaenzen wir die fehlenden -- ohne bestehende Customizings
+            # zu ueberschreiben.
+            existing_keys = {row["key"] for row in rows if row.get("key")}
+            missing = [
+                definition
+                for definition in DEFAULT_AGENT_DEFINITIONS
+                if definition["key"] not in existing_keys
+            ]
+            if missing:
+                await self._repository.upsert_agents(missing)
+                rows = await self._repository.list_agents()
 
         return [
             AgentDefinition(

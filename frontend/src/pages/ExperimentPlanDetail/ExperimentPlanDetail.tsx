@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { acceptPlanDraft, loadPlan } from '../../lib/api'
+import { acceptPlanDraft, loadPlan, submitCorrection } from '../../lib/api'
 import type { AcceptDraftResponse, ExperimentPlan } from '../../types/plan'
 import './ExperimentPlanDetail.css'
 
@@ -42,6 +42,15 @@ export default function ExperimentPlanDetail() {
   const [accepting, setAccepting] = useState(false)
   const [acceptResult, setAcceptResult] = useState<AcceptDraftResponse | null>(null)
   const [acceptError, setAcceptError] = useState<string | null>(null)
+  const [correctionOpen, setCorrectionOpen] = useState(false)
+  const [correctionFieldPath, setCorrectionFieldPath] = useState<string>('protocol')
+  const [correctionOldValue, setCorrectionOldValue] = useState<string>('')
+  const [correctionNewValue, setCorrectionNewValue] = useState<string>('')
+  const [correctionReason, setCorrectionReason] = useState<string>('')
+  const [correctionStatus, setCorrectionStatus] = useState<
+    'idle' | 'submitting' | 'success' | 'error'
+  >('idle')
+  const [correctionMessage, setCorrectionMessage] = useState<string | null>(null)
 
   const planId = currentPlan?.plan_id ?? id ?? null
 
@@ -63,6 +72,52 @@ export default function ExperimentPlanDetail() {
   const handleExport = (): void => {
     if (typeof window !== 'undefined') {
       window.print()
+    }
+  }
+
+  const openCorrectionModal = (): void => {
+    setCorrectionFieldPath(at)
+    setCorrectionOldValue('')
+    setCorrectionNewValue('')
+    setCorrectionReason('')
+    setCorrectionStatus('idle')
+    setCorrectionMessage(null)
+    setCorrectionOpen(true)
+  }
+
+  const closeCorrectionModal = (): void => {
+    if (correctionStatus === 'submitting') return
+    setCorrectionOpen(false)
+  }
+
+  const handleSubmitCorrection = async (): Promise<void> => {
+    if (!planId) return
+    if (!correctionFieldPath.trim() || !correctionNewValue.trim() || !correctionReason.trim()) {
+      setCorrectionStatus('error')
+      setCorrectionMessage('Field path, new value and reason are required.')
+      return
+    }
+    setCorrectionStatus('submitting')
+    setCorrectionMessage(null)
+    try {
+      await submitCorrection(planId, {
+        experiment_type:
+          (currentPlan?.metadata?.experiment_type as string | undefined) ?? 'general',
+        field_path: correctionFieldPath.trim(),
+        old_value: correctionOldValue.trim(),
+        new_value: correctionNewValue.trim(),
+        reason: correctionReason.trim(),
+      })
+      setCorrectionStatus('success')
+      setCorrectionMessage('Correction stored. Future runs will learn from it.')
+      window.setTimeout(() => {
+        setCorrectionOpen(false)
+      }, 1200)
+    } catch (err) {
+      setCorrectionStatus('error')
+      setCorrectionMessage(
+        err instanceof Error ? err.message : 'Could not submit correction',
+      )
     }
   }
 
@@ -148,6 +203,16 @@ export default function ExperimentPlanDetail() {
                 <span className="font-label-caps">{accepting ? 'INGESTING…' : 'ACCEPT DRAFT'}</span>
               </button>
             )}
+            <button
+              className="ed__export"
+              id="suggest-correction-btn"
+              onClick={openCorrectionModal}
+              disabled={!planId}
+              title="Teach the agents what to do better next time"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit_note</span>
+              <span className="font-label-caps">SUGGEST CORRECTION</span>
+            </button>
             <button className="ed__export" id="export-pdf-btn" onClick={handleExport}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>picture_as_pdf</span>
               <span className="font-label-caps">EXPORT PDF</span>
@@ -507,6 +572,116 @@ export default function ExperimentPlanDetail() {
           </div>
         </div>
       </div>
+      {correctionOpen ? (
+        <div
+          className="correction-modal__overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Suggest a correction"
+          onClick={closeCorrectionModal}
+        >
+          <div
+            className="correction-modal__panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="correction-modal__header">
+              <div className="correction-modal__title">
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  edit_note
+                </span>
+                <span>Suggest a correction</span>
+              </div>
+              <button
+                type="button"
+                className="correction-modal__close"
+                onClick={closeCorrectionModal}
+                aria-label="Close"
+                title="Close"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  close
+                </span>
+              </button>
+            </div>
+            <p className="correction-modal__hint">
+              Tell the agents what should change. Stored as a Knowledge Garden node
+              and re-injected into future runs of the same experiment type.
+            </p>
+            <div className="correction-modal__form">
+              <label className="correction-modal__field">
+                <span className="font-label-caps">Field path</span>
+                <input
+                  type="text"
+                  value={correctionFieldPath}
+                  onChange={(e) => setCorrectionFieldPath(e.target.value)}
+                  placeholder="e.g. protocol.steps[2] or materials.item_3"
+                  disabled={correctionStatus === 'submitting'}
+                />
+              </label>
+              <label className="correction-modal__field">
+                <span className="font-label-caps">Old value (optional)</span>
+                <textarea
+                  rows={2}
+                  value={correctionOldValue}
+                  onChange={(e) => setCorrectionOldValue(e.target.value)}
+                  placeholder="What the agent originally produced"
+                  disabled={correctionStatus === 'submitting'}
+                />
+              </label>
+              <label className="correction-modal__field">
+                <span className="font-label-caps">New value</span>
+                <textarea
+                  rows={2}
+                  value={correctionNewValue}
+                  onChange={(e) => setCorrectionNewValue(e.target.value)}
+                  placeholder="What it should look like instead"
+                  disabled={correctionStatus === 'submitting'}
+                />
+              </label>
+              <label className="correction-modal__field">
+                <span className="font-label-caps">Reason</span>
+                <textarea
+                  rows={3}
+                  value={correctionReason}
+                  onChange={(e) => setCorrectionReason(e.target.value)}
+                  placeholder="Why is the new value better? Cite the principle, paper or rule of thumb."
+                  disabled={correctionStatus === 'submitting'}
+                />
+              </label>
+            </div>
+            {correctionMessage ? (
+              <div
+                className={`correction-modal__status correction-modal__status--${correctionStatus}`}
+                role="status"
+              >
+                {correctionMessage}
+              </div>
+            ) : null}
+            <div className="correction-modal__actions">
+              <button
+                type="button"
+                className="correction-modal__btn correction-modal__btn--secondary"
+                onClick={closeCorrectionModal}
+                disabled={correctionStatus === 'submitting'}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="correction-modal__btn correction-modal__btn--primary"
+                onClick={handleSubmitCorrection}
+                disabled={correctionStatus === 'submitting' || correctionStatus === 'success'}
+              >
+                {correctionStatus === 'submitting'
+                  ? 'Submitting…'
+                  : correctionStatus === 'success'
+                    ? 'Stored'
+                    : 'Submit correction'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

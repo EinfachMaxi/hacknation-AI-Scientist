@@ -32,6 +32,7 @@ from backend.app.schemas.plan import (
     RunGraphEdge,
     RunGraphMeta,
     RunGraphNode,
+    RunGraphNodeRationale,
     RunGraphNodeTooling,
     RunGraphSnapshot,
     StartRunRequest,
@@ -231,6 +232,20 @@ async def get_run_graph(run_id: str, app_settings: Settings = Depends(get_settin
         metadata = agent.metadata if isinstance(agent.metadata, dict) else {}
         if isinstance(metadata.get("allowed_tools"), list):
             allowed_tools = [str(tool) for tool in metadata["allowed_tools"]]
+        rationale_obj: RunGraphNodeRationale | None = None
+        run_agent_meta = (
+            run_agent.get("metadata")
+            if run_agent and isinstance(run_agent.get("metadata"), dict)
+            else None
+        )
+        rationale_payload = (
+            run_agent_meta.get("rationale") if isinstance(run_agent_meta, dict) else None
+        )
+        if isinstance(rationale_payload, dict):
+            try:
+                rationale_obj = RunGraphNodeRationale.model_validate(rationale_payload)
+            except Exception:  # noqa: BLE001
+                rationale_obj = None
         node_by_key[agent.key] = RunGraphNode(
             id=agent.key,
             label=agent.name,
@@ -243,6 +258,7 @@ async def get_run_graph(run_id: str, app_settings: Settings = Depends(get_settin
                 tool_calls_count=len(tool_messages),
                 last_tool_status=last_tool_status,
             ),
+            rationale=rationale_obj,
         )
 
     edges_map: dict[tuple[str, str], RunGraphEdge] = {}

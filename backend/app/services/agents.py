@@ -189,7 +189,11 @@ def _normalize_protocol_steps(raw_steps: Any, prompt: str) -> list[dict[str, Any
     return normalised
 
 
-def _build_agent_system_prompt(agent: AgentDefinition) -> str:
+def _build_agent_system_prompt(
+    agent: AgentDefinition,
+    *,
+    corrections: list[dict[str, Any]] | None = None,
+) -> str:
     metadata = agent.metadata or {}
     task = metadata.get("task")
     output_schema = metadata.get("output_schema")
@@ -203,6 +207,14 @@ def _build_agent_system_prompt(agent: AgentDefinition) -> str:
         parts.append(f"Task details: {task}")
     if output_schema:
         parts.append(f"Output schema hint: {output_schema}")
+    if corrections:
+        # Late import to avoid circular dependency (pkm imports from schemas
+        # which can in turn pull agents in some setups).
+        from backend.app.services.pkm import format_corrections_for_prompt
+
+        block = format_corrections_for_prompt(agent.key, corrections)
+        if block:
+            parts.append(block)
     return "\n".join(parts)
 
 
@@ -1548,7 +1560,17 @@ async def run_dynamic_agent(
     tavily: TavilyClient,
     state: dict[str, Any],
 ) -> tuple[Any, list[dict[str, Any]]]:
-    system_prompt = _build_agent_system_prompt(agent)
+    # learn-from-corrections-Loop: relevante Korrekturen werden vom
+    # Orchestrator einmalig pro Run geladen und im state-Dict abgelegt; pro
+    # Agent ziehen wir nur die Eintraege, die zu seinem Verantwortungsbereich
+    # passen, und weben sie als Few-Shot in den System-Prompt ein.
+    agent_corrections: list[dict[str, Any]] | None = None
+    corrections_state = state.get("corrections")
+    if isinstance(corrections_state, dict):
+        candidate = corrections_state.get(agent.key)
+        if isinstance(candidate, list) and candidate:
+            agent_corrections = candidate
+    system_prompt = _build_agent_system_prompt(agent, corrections=agent_corrections)
     traces: list[dict[str, Any]] = []
     tools_on = (
         settings.agent_tool_calling_enabled
@@ -1755,6 +1777,26 @@ async def run_dynamic_agent(
             issues.extend(extra)
             traces.extend(review_traces)
         return [issue.model_dump() for issue in issues], traces
+
+    if agent.key == "validation":
+        # Validation laeuft als regulaerer DAG-Knoten -- damit erscheint er auch
+        # im Live-Agent-Progress UI als eigene Card und seine Laufzeit zaehlt
+        # in `generation_seconds`. Der validation_agent benoetigt das fertige
+        # Protocol + die Materials aus dem state.
+        protocol_state = (
+            state["protocol"] if isinstance(state.get("protocol"), dict) else {}
+        )
+        materials_state = (
+            state["materials"] if isinstance(state.get("materials"), list) else []
+        )
+        validation_output = await validation_agent(
+            prompt,
+            protocol_state,
+            materials_state,
+            settings,
+            use_mock,
+        )
+        return validation_output, traces
 
     raise RuntimeError(f"Unbekannter Agent: {agent.key}")
 

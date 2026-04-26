@@ -210,6 +210,134 @@ def candidate_summary(candidates: KnowledgeCandidates) -> dict[str, int]:
     return summary
 
 
+# === Corrections-Recall (learn-from-corrections-Loop) =====================
+
+
+# Welcher Agent ist fuer welchen field_path-Prefix zustaendig.
+# Wird vom Few-Shot-Inject genutzt: die Korrekturen, die der Scientist auf
+# z.B. `protocol.steps[2]` gemacht hat, fliessen in den Protocol-Designer-
+# System-Prompt zurueck -- nicht in den Materials-Agent.
+_CORRECTION_AGENT_BY_PREFIX: tuple[tuple[str, str], ...] = (
+    ("literature", "literature"),
+    ("protocol", "protocol"),
+    ("materials", "materials"),
+    ("budget", "budget"),
+    ("timeline", "timeline"),
+    ("review", "review"),
+    ("validation", "validation"),
+)
+
+
+def _agent_key_for_field_path(field_path: str) -> str | None:
+    if not isinstance(field_path, str):
+        return None
+    fp = field_path.strip().lower()
+    for prefix, agent_key in _CORRECTION_AGENT_BY_PREFIX:
+        if fp.startswith(prefix):
+            return agent_key
+    return None
+
+
+async def recall_corrections(
+    repository: Any,
+    *,
+    experiment_type: str | None,
+    limit: int = 6,
+) -> dict[str, list[dict[str, Any]]]:
+    """Liefert die zuletzt gespeicherten User-Korrekturen, gruppiert pro Agent.
+
+    Strategie:
+    - Filter: `node_type == 'correction'`, `status == 'active'`.
+    - Bevorzugt werden Korrekturen mit demselben `experiment_type`. Falls
+      gleichzeitig generische (None/empty) Korrekturen existieren, fuellen
+      wir bis `limit` auf. Damit lernt das System auch von Cross-Domain-
+      Feedback ohne ueber-Generalisierung.
+    - Sortierung: zuletzt-zuerst (created_at), dann nach Confidence.
+    - Rueckgabe: `{agent_key: [{field_path, old_value, new_value, reason,
+      experiment_type}]}`.
+    """
+    try:
+        snapshot = await repository.list_knowledge(status="active")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("recall_corrections: list_knowledge failed: %s", exc)
+        return {}
+
+    nodes = (snapshot or {}).get("nodes") or []
+    corrections: list[dict[str, Any]] = [
+        node for node in nodes if node.get("node_type") == "correction"
+    ]
+    if not corrections:
+        return {}
+
+    def _sort_key(node: dict[str, Any]) -> tuple[int, float, str]:
+        ts = str(node.get("created_at") or "")
+        conf = float(node.get("confidence") or 0.0)
+        same_type = 1 if (
+            experiment_type
+            and (node.get("experiment_type") or "").lower() == experiment_type.lower()
+        ) else 0
+        return (same_type, conf, ts)
+
+    corrections.sort(key=_sort_key, reverse=True)
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for node in corrections[: max(limit * 4, limit)]:
+        meta = node.get("metadata") if isinstance(node.get("metadata"), dict) else {}
+        field_path = (
+            meta.get("field_path")
+            or node.get("title", "")
+            .replace("Correction:", "")
+            .strip()
+        )
+        agent_key = _agent_key_for_field_path(field_path)
+        if agent_key is None:
+            continue
+        bucket = grouped.setdefault(agent_key, [])
+        if len(bucket) >= limit:
+            continue
+        bucket.append(
+            {
+                "field_path": field_path,
+                "old_value": str(meta.get("old_value", "")).strip(),
+                "new_value": str(meta.get("new_value", "")).strip(),
+                "reason": str(meta.get("reason", "")).strip(),
+                "experiment_type": node.get("experiment_type"),
+            }
+        )
+    return grouped
+
+
+def format_corrections_for_prompt(
+    agent_key: str, corrections: list[dict[str, Any]]
+) -> str:
+    """Formatiert relevante Corrections als Few-Shot-Block fuer Agent-Prompts.
+
+    Bewusst kompakt gehalten (max ~6 Items, je ~3 Zeilen) damit der Token-
+    Footprint klein bleibt.
+    """
+    if not corrections:
+        return ""
+    lines: list[str] = [
+        "",
+        f"Past scientist corrections relevant to {agent_key} (apply them as soft guidance, not hard constraints):",
+    ]
+    for idx, item in enumerate(corrections[:6], start=1):
+        old_v = (item.get("old_value") or "").strip()[:160]
+        new_v = (item.get("new_value") or "").strip()[:160]
+        reason = (item.get("reason") or "").strip()[:200]
+        path = (item.get("field_path") or "").strip()[:80]
+        lines.append(
+            f"  {idx}. [{path}] '{old_v}' -> '{new_v}' "
+            f"(reason: {reason or 'n/a'})"
+        )
+    lines.append(
+        "Use these examples to avoid repeating known mistakes; if the current "
+        "context legitimately differs, you may diverge -- but stay consistent "
+        "with the underlying intent."
+    )
+    return "\n".join(lines)
+
+
 # === Embeddings ===========================================================
 
 

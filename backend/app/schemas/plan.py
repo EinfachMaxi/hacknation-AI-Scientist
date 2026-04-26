@@ -187,6 +187,21 @@ class RunGraphNodeTooling(BaseModel):
     last_tool_status: str | None = None
 
 
+class RunGraphNodeRationale(BaseModel):
+    """Why-this-agent-Inspector payload.
+
+    Wird vom Planner (Backend) erzeugt und im run_agents.metadata.rationale
+    persistiert. Frontend zeigt es im Inspector-Popover.
+    """
+
+    agent_key: str
+    score: int = 0
+    matched_capabilities: list[str] = Field(default_factory=list)
+    matched_keywords: list[str] = Field(default_factory=list)
+    inclusion_reason: str
+    depends_on: list[str] = Field(default_factory=list)
+
+
 class RunGraphNode(BaseModel):
     id: str
     label: str
@@ -195,6 +210,7 @@ class RunGraphNode(BaseModel):
     state: Literal["pending", "ready", "running", "completed", "failed", "skipped"] = "pending"
     progress_pct: int = 0
     tooling: RunGraphNodeTooling | None = None
+    rationale: RunGraphNodeRationale | None = None
 
 
 class RunGraphEdge(BaseModel):

@@ -65,6 +65,7 @@ const agentVisualMap: Record<string, { icon: string; baseColor: AgentColor }> =
     budget: { icon: "payments", baseColor: "secondary" },
     timeline: { icon: "calendar_month", baseColor: "primary" },
     review: { icon: "fact_check", baseColor: "dormant" },
+    validation: { icon: "rule", baseColor: "secondary" },
   };
 
 const fallbackVisual = { icon: "hub", baseColor: "secondary" as AgentColor };
@@ -113,6 +114,7 @@ export default function LiveAgentProgress() {
   const [runMessages, setRunMessages] = useState<AgentFeedMessage[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [inspectorAgentId, setInspectorAgentId] = useState<string | null>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const seenRunSeqRef = useRef<Set<string>>(new Set());
   const hypothesis =
@@ -638,6 +640,22 @@ export default function LiveAgentProgress() {
                         </span>
                       </div>
                       <h3 className="agent-card__name">{agent.name}</h3>
+                      {node?.rationale ? (
+                        <button
+                          type="button"
+                          className="agent-card__inspector-btn"
+                          onClick={() => setInspectorAgentId(agent.id)}
+                          title={`Why was ${agent.name} selected?`}
+                          aria-label={`Why was ${agent.name} selected?`}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: 14 }}
+                          >
+                            help
+                          </span>
+                        </button>
+                      ) : null}
                     </div>
                     <span
                       className="font-data-mono"
@@ -882,6 +900,112 @@ export default function LiveAgentProgress() {
           </div>
         </section>
       </div>
+      {inspectorAgentId
+        ? (() => {
+            const node = graph?.nodes.find((n) => n.id === inspectorAgentId);
+            const rationale = node?.rationale ?? null;
+            if (!node || !rationale) return null;
+            return (
+              <div
+                className="agent-inspector__overlay"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Why was ${node.label} selected?`}
+                onClick={() => setInspectorAgentId(null)}
+              >
+                <div
+                  className="agent-inspector__panel glass-panel"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="agent-inspector__header">
+                    <div className="agent-inspector__title">
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 18 }}
+                      >
+                        help
+                      </span>
+                      <span>Why was {node.label} selected?</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="agent-inspector__close"
+                      onClick={() => setInspectorAgentId(null)}
+                      aria-label="Close inspector"
+                      title="Close"
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 18 }}
+                      >
+                        close
+                      </span>
+                    </button>
+                  </div>
+                  <p className="agent-inspector__reason">
+                    {rationale.inclusion_reason}
+                  </p>
+                  <dl className="agent-inspector__grid">
+                    <div className="agent-inspector__row">
+                      <dt className="font-label-caps">Score</dt>
+                      <dd className="font-data-mono">{rationale.score}</dd>
+                    </div>
+                    <div className="agent-inspector__row">
+                      <dt className="font-label-caps">Matched capabilities</dt>
+                      <dd>
+                        {rationale.matched_capabilities.length === 0 ? (
+                          <span className="agent-inspector__empty">
+                            none — included as core agent
+                          </span>
+                        ) : (
+                          rationale.matched_capabilities.map((cap) => (
+                            <span key={cap} className="agent-inspector__chip">
+                              {cap}
+                            </span>
+                          ))
+                        )}
+                      </dd>
+                    </div>
+                    <div className="agent-inspector__row">
+                      <dt className="font-label-caps">Matched keywords</dt>
+                      <dd>
+                        {rationale.matched_keywords.length === 0 ? (
+                          <span className="agent-inspector__empty">
+                            no specific keywords from the prompt
+                          </span>
+                        ) : (
+                          rationale.matched_keywords.map((kw) => (
+                            <span
+                              key={kw}
+                              className="agent-inspector__chip agent-inspector__chip--kw"
+                            >
+                              {kw}
+                            </span>
+                          ))
+                        )}
+                      </dd>
+                    </div>
+                    {rationale.depends_on.length > 0 ? (
+                      <div className="agent-inspector__row">
+                        <dt className="font-label-caps">Depends on</dt>
+                        <dd>
+                          {rationale.depends_on.map((dep) => (
+                            <span
+                              key={dep}
+                              className="agent-inspector__chip agent-inspector__chip--dep"
+                            >
+                              {dep}
+                            </span>
+                          ))}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                </div>
+              </div>
+            );
+          })()
+        : null}
     </div>
   );
 }

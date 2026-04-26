@@ -13,7 +13,7 @@ from backend.app.services.agents import (
     validation_agent,
 )
 from backend.app.services.agent_registry import AgentDefinition, AgentRegistry
-from backend.app.services.execution_plan import ExecutionNode
+from backend.app.services.execution_plan import AgentRationale, ExecutionNode
 from backend.app.services.integrations import SupabaseRepository, TavilyClient
 from backend.app.services.message_bus import AgentBus, MessageBus
 from backend.app.services.planner import Planner
@@ -28,6 +28,24 @@ MATERIALS_MIN_ITEMS = 2
 PROTOCOL_LONG_STEPS = 8
 BUDGET_HIGH_TOTAL = 500.0
 REVIEW_MAX_ISSUES_TO_ASK = 2
+
+
+def _rationale_to_dict(rationale: AgentRationale | None) -> dict[str, Any] | None:
+    """JSON-fertige Repraesentation der Planner-Rationale.
+
+    Wir wandeln die `AgentRationale` in ein flaches dict, damit es sicher in
+    Supabase-jsonb (run_agents.metadata, agent_events.payload) wandern kann.
+    """
+    if rationale is None:
+        return None
+    return {
+        "agent_key": rationale.agent_key,
+        "score": rationale.score,
+        "matched_capabilities": list(rationale.matched_capabilities),
+        "matched_keywords": list(rationale.matched_keywords),
+        "inclusion_reason": rationale.inclusion_reason,
+        "depends_on": list(rationale.depends_on),
+    }
 
 
 def _assess_agent_needs(
@@ -318,16 +336,19 @@ class PlanOrchestrator:
                 continue
             agent_id = agent_id_by_key[node.agent_key]
             await asyncio.sleep(SPAWN_DELAY_S)
-            await self._repository.create_run_agents(
-                [
-                    {
-                        "run_id": run_id,
-                        "agent_id": agent_id,
-                        "status": "ready",
-                        "progress_pct": 0,
-                    }
-                ]
-            )
+            rationale = execution_plan.rationales.get(node.agent_key)
+            rationale_payload = _rationale_to_dict(rationale)
+            run_agent_row: dict[str, Any] = {
+                "run_id": run_id,
+                "agent_id": agent_id,
+                "status": "ready",
+                "progress_pct": 0,
+            }
+            if rationale_payload:
+                # `metadata` haelt die strukturierte Begruendung -- der
+                # Why-this-agent-Inspector liest sie ueber `/runs/.../graph`.
+                run_agent_row["metadata"] = {"rationale": rationale_payload}
+            await self._repository.create_run_agents([run_agent_row])
             if planner_agent_id:
                 progress = min(95, 20 + index * 12)
                 await self._repository.update_run_agent(
@@ -335,6 +356,12 @@ class PlanOrchestrator:
                     planner_agent_id,
                     {"status": "running", "progress_pct": progress},
                 )
+            spawn_payload: dict[str, Any] = {
+                "action": "spawn",
+                "agent": node.agent_key,
+            }
+            if rationale_payload:
+                spawn_payload["rationale"] = rationale_payload
             await self._message_bus.publish_message(
                 run_id,
                 message_type="handoff",
@@ -344,8 +371,11 @@ class PlanOrchestrator:
                 to_agent=node.agent_key,
                 subject=f"spawn::{node.agent_key}",
                 message=f"Planner aktiviert {agent_by_key[node.agent_key].name}.",
-                payload={"action": "spawn", "agent": node.agent_key},
+                payload=spawn_payload,
             )
+            event_payload: dict[str, Any] = {}
+            if rationale_payload:
+                event_payload["rationale"] = rationale_payload
             await self._message_bus.publish_event(
                 run_id,
                 agent=node.agent_key,
@@ -355,6 +385,7 @@ class PlanOrchestrator:
                 to_agent=node.agent_key,
                 message=f"Planner spawnt {node.agent_key}.",
                 agent_id=agent_id,
+                payload=event_payload or None,
             )
 
         # 4. Planner als abgeschlossen markieren.
@@ -380,6 +411,20 @@ class PlanOrchestrator:
         # 5. Bus fuer Inter-Agent-Kommunikation aufsetzen.
         agent_bus = AgentBus(self._message_bus, agent_id_by_key)
 
+        # 5a. Learn-from-corrections-Loop: relevante User-Korrekturen einmal
+        #     pro Run laden, gruppiert pro Agent. `run_dynamic_agent` zieht
+        #     daraus seine Few-Shot-Beispiele.
+        from backend.app.services.pkm import recall_corrections as _recall_corrections
+
+        try:
+            corrections_by_agent = await _recall_corrections(
+                self._repository,
+                experiment_type=request.experiment_type,
+                limit=6,
+            )
+        except Exception:  # noqa: BLE001
+            corrections_by_agent = {}
+
         state: dict[str, Any] = {
             "prompt": request.prompt,
             "use_mock": request.use_mock,
@@ -390,8 +435,10 @@ class PlanOrchestrator:
             "budget": {},
             "timeline": {},
             "review_issues": [],
+            "validation": {},
             "agent_bus": agent_bus,
             "run_id": run_id,
+            "corrections": corrections_by_agent,
         }
         for level in execution_plan.levels:
             tasks = [self._run_node(run_id, state, node, agent_id_by_key, agent_by_key) for node in level]
@@ -414,6 +461,9 @@ class PlanOrchestrator:
         )
         manual_minutes_estimate = steps_count * 30 + materials_count * 5 + 60
 
+        applied_corrections_total = sum(
+            len(items) for items in (corrections_by_agent or {}).values()
+        )
         meta: dict[str, Any] = {
             "experiment_type": state.get("experiment_type") or "general",
             "generated_by": "dynamic-orchestrator-v2",
@@ -421,16 +471,28 @@ class PlanOrchestrator:
             "tool_calling_enabled": self._settings.agent_tool_calling_enabled,
             "generation_seconds": round(generation_seconds, 2),
             "manual_minutes_estimate": manual_minutes_estimate,
+            "applied_corrections_total": applied_corrections_total,
+            "applied_corrections_by_agent": {
+                k: len(v) for k, v in (corrections_by_agent or {}).items()
+            },
         }
         if streaming:
             meta["streaming"] = True
-        validation = await validation_agent(
-            state["prompt"],
-            state["protocol"] if isinstance(state.get("protocol"), dict) else {},
-            state["materials"] if isinstance(state.get("materials"), list) else [],
-            self._settings,
-            request.use_mock,
-        )
+
+        # Validation kommt jetzt regulaer aus dem DAG (Knoten "validation").
+        # Falls der Knoten nicht im Plan war (z.B. weil die Registry den Agent
+        # nicht kennt), greift ein Legacy-Fallback auf den Direktaufruf, damit
+        # bestehende Setups keinen leeren Validation-Tab kriegen.
+        validation = state.get("validation")
+        if not isinstance(validation, dict) or not validation:
+            validation = await validation_agent(
+                state["prompt"],
+                state["protocol"] if isinstance(state.get("protocol"), dict) else {},
+                state["materials"] if isinstance(state.get("materials"), list) else [],
+                self._settings,
+                request.use_mock,
+            )
+            meta["validation_fallback"] = "legacy_direct_call"
         plan = ExperimentPlan(
             title=build_title(state["prompt"]),
             hypothesis=state["prompt"],
