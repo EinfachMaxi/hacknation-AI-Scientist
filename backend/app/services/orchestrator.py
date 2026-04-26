@@ -425,20 +425,21 @@ class PlanOrchestrator:
             review_issues=state.get("review_issues", []),
             metadata=meta,
         )
-        node = {
-            "id": f"kn-exp-{plan.plan_id}",
-            "title": plan.title,
-            "node_type": "experiment",
-            "content": plan.hypothesis,
-            "confidence_score": 0.7,
-            "times_applied": 1,
-            "tags": ["experiment", "auto-generated"],
-            "created_by": "ai-agent",
-        }
-        plan.knowledge_nodes_extracted = [node["id"]]
+        # WICHTIG: Knowledge-Graph wird NICHT mehr automatisch beschrieben.
+        # Der Plan ist ein DRAFT, bis der User explizit "Accept" drückt.
+        # Wir merken uns lediglich die ID des potenziellen Experiment-Knotens
+        # für die spätere Ingest-Stufe.
+        from backend.app.services.pkm import (
+            candidate_summary,
+            extract_knowledge_candidates,
+        )
+
+        candidates = extract_knowledge_candidates(plan)
+        plan.knowledge_nodes_extracted = [n.id for n in candidates.nodes]
+        if isinstance(plan.metadata, dict):
+            plan.metadata["candidate_summary"] = candidate_summary(candidates)
+            plan.metadata["graph_status"] = "draft"
         await self._repository.save_plan(plan.model_dump(mode="json"))
-        await self._repository.upsert_knowledge_nodes([node])
-        await self._repository.add_knowledge_edges([])
         await self._repository.update_run(
             run_id,
             {"status": "completed", "plan_id": plan.plan_id, "error_message": None},

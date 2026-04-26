@@ -186,3 +186,84 @@ export interface RunGraphSnapshot {
     tool_calling_enabled: boolean
   }
 }
+
+export type KnowledgeNodeType =
+  | 'experiment'
+  | 'correction'
+  | 'reagent'
+  | 'claim'
+  | 'entity'
+  | 'literature'
+  | 'chat_insight'
+
+export type KnowledgeNodeStatus = 'pending' | 'active' | 'archived'
+export type KnowledgeSourceType =
+  | 'plan_draft'
+  | 'user_correction'
+  | 'chat_insight'
+  | 'literature'
+  | 'manual'
+
+export interface KnowledgeNode {
+  id: string
+  title: string
+  node_type: KnowledgeNodeType
+  experiment_type?: string | null
+  content?: string | null
+  metadata: Record<string, unknown>
+  tags: string[]
+  status: KnowledgeNodeStatus
+  source_type: KnowledgeSourceType
+  source_ref?: string | null
+  confidence: number
+  times_applied: number
+  created_by?: string | null
+  created_at?: string | null
+}
+
+export interface KnowledgeEdge {
+  source_id: string
+  target_id: string
+  relationship_type: string
+  weight?: number
+  source_type?: KnowledgeSourceType
+  source_ref?: string | null
+}
+
+export interface KnowledgeCandidates {
+  nodes: KnowledgeNode[]
+  edges: KnowledgeEdge[]
+}
+
+export interface AcceptDraftResponse {
+  plan_id: string
+  inserted_nodes: number
+  merged_nodes: number
+  inserted_edges: number
+  candidate_summary: Record<string, number>
+}
+
+export interface KnowledgeChatCitation {
+  node_id: string
+  title: string
+  node_type: KnowledgeNodeType
+  score: number
+}
+
+export interface KnowledgeChatResponse {
+  answer: string
+  citations: KnowledgeChatCitation[]
+  proposed_save: KnowledgeNode | null
+  proposed_edges?: KnowledgeEdge[]
+}
+
+export interface KnowledgeProposal {
+  id: string
+  kind: 'plan_draft' | 'chat_insight'
+  source_ref?: string | null
+  payload: KnowledgeCandidates
+  status: 'pending' | 'confirmed' | 'rejected'
+  created_by?: string | null
+  created_at?: string | null
+  decided_at?: string | null
+}

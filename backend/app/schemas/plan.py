@@ -230,3 +230,99 @@ class AgentMessage(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+
+# === Knowledge Graph (Phase 2) =============================================
+
+KnowledgeNodeType = Literal[
+    "experiment", "correction", "reagent", "claim", "entity", "literature", "chat_insight"
+]
+KnowledgeNodeStatus = Literal["pending", "active", "archived"]
+KnowledgeSourceType = Literal[
+    "plan_draft", "user_correction", "chat_insight", "literature", "manual"
+]
+
+
+class KnowledgeNode(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    title: str
+    node_type: KnowledgeNodeType
+    experiment_type: str | None = None
+    content: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    tags: list[str] = Field(default_factory=list)
+    status: KnowledgeNodeStatus = "pending"
+    source_type: KnowledgeSourceType = "plan_draft"
+    source_ref: str | None = None
+    confidence: float = 0.7
+    times_applied: int = 1
+    created_by: str | None = None
+    created_at: datetime | None = None
+
+
+class KnowledgeEdge(BaseModel):
+    source_id: str
+    target_id: str
+    relationship_type: str
+    weight: float = 1.0
+    source_type: KnowledgeSourceType = "plan_draft"
+    source_ref: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeCandidates(BaseModel):
+    nodes: list[KnowledgeNode] = Field(default_factory=list)
+    edges: list[KnowledgeEdge] = Field(default_factory=list)
+
+
+class AcceptDraftResponse(BaseModel):
+    plan_id: str
+    inserted_nodes: int
+    merged_nodes: int
+    inserted_edges: int
+    candidate_summary: dict[str, int] = Field(default_factory=dict)
+
+
+class KnowledgeChatRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=2_000)
+    top_k: int = 8
+    experiment_type: str | None = None
+
+
+class KnowledgeChatCitation(BaseModel):
+    node_id: str
+    title: str
+    node_type: KnowledgeNodeType
+    score: float
+
+
+class KnowledgeChatResponse(BaseModel):
+    answer: str
+    citations: list[KnowledgeChatCitation] = Field(default_factory=list)
+    proposed_save: KnowledgeNode | None = None
+    proposed_edges: list[KnowledgeEdge] = Field(default_factory=list)
+
+
+class KnowledgeProposalKind(str):
+    PLAN_DRAFT = "plan_draft"
+    CHAT_INSIGHT = "chat_insight"
+
+
+class KnowledgeProposalCreate(BaseModel):
+    kind: Literal["plan_draft", "chat_insight"]
+    source_ref: str | None = None
+    payload: KnowledgeCandidates
+    created_by: str | None = None
+
+
+class KnowledgeProposal(BaseModel):
+    id: str
+    kind: Literal["plan_draft", "chat_insight"]
+    source_ref: str | None = None
+    payload: KnowledgeCandidates
+    status: Literal["pending", "confirmed", "rejected"] = "pending"
+    created_by: str | None = None
+    created_at: datetime | None = None
+    decided_at: datetime | None = None
+

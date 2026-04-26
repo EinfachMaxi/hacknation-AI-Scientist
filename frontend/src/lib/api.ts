@@ -1,8 +1,14 @@
 import type {
+  AcceptDraftResponse,
   AgentEvent,
   AgentMessage,
   ExperimentPlan,
   ExperimentRun,
+  KnowledgeCandidates,
+  KnowledgeChatResponse,
+  KnowledgeEdge,
+  KnowledgeNode,
+  KnowledgeProposal,
   RunGraphSnapshot,
   StreamEvent,
 } from '../types/plan'
@@ -178,4 +184,109 @@ export async function streamGeneratePlan(
   }
 
   return finalPlan
+}
+
+// === Knowledge Graph API ====================================================
+
+export async function acceptPlanDraft(planId: string): Promise<AcceptDraftResponse> {
+  const response = await fetch(`${API_BASE_URL}/plans/${planId}/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!response.ok) {
+    throw new Error('Draft konnte nicht akzeptiert werden')
+  }
+  return (await response.json()) as AcceptDraftResponse
+}
+
+export interface KnowledgeFetchOptions {
+  status?: 'active' | 'pending' | 'archived' | 'all'
+}
+
+export interface KnowledgeListResponse {
+  nodes: KnowledgeNode[]
+  edges: KnowledgeEdge[]
+}
+
+export async function fetchKnowledgeGraph(
+  options: KnowledgeFetchOptions = {},
+): Promise<KnowledgeListResponse> {
+  const params = new URLSearchParams()
+  if (options.status) {
+    params.set('status', options.status)
+  }
+  const query = params.toString()
+  const response = await fetch(
+    `${API_BASE_URL}/knowledge${query ? `?${query}` : ''}`,
+  )
+  if (!response.ok) {
+    throw new Error('Knowledge Graph konnte nicht geladen werden')
+  }
+  return (await response.json()) as KnowledgeListResponse
+}
+
+export interface KnowledgeChatRequest {
+  query: string
+  top_k?: number
+  experiment_type?: string
+}
+
+export async function askKnowledgeChat(
+  request: KnowledgeChatRequest,
+): Promise<KnowledgeChatResponse> {
+  const response = await fetch(`${API_BASE_URL}/knowledge/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  if (!response.ok) {
+    throw new Error('Knowledge Chat fehlgeschlagen')
+  }
+  return (await response.json()) as KnowledgeChatResponse
+}
+
+export async function proposeKnowledgeSave(
+  payload: KnowledgeCandidates,
+  options?: { sourceRef?: string | null; createdBy?: string },
+): Promise<KnowledgeProposal> {
+  const response = await fetch(`${API_BASE_URL}/knowledge/proposals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'chat_insight',
+      source_ref: options?.sourceRef ?? null,
+      payload,
+      created_by: options?.createdBy ?? 'chat-user',
+    }),
+  })
+  if (!response.ok) {
+    throw new Error('Proposal konnte nicht erstellt werden')
+  }
+  return (await response.json()) as KnowledgeProposal
+}
+
+export async function confirmKnowledgeProposal(
+  proposalId: string,
+): Promise<AcceptDraftResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/knowledge/proposals/${proposalId}/confirm`,
+    { method: 'POST' },
+  )
+  if (!response.ok) {
+    throw new Error('Proposal-Confirm fehlgeschlagen')
+  }
+  return (await response.json()) as AcceptDraftResponse
+}
+
+export async function rejectKnowledgeProposal(
+  proposalId: string,
+): Promise<{ status: string; id: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/knowledge/proposals/${proposalId}/reject`,
+    { method: 'POST' },
+  )
+  if (!response.ok) {
+    throw new Error('Proposal-Reject fehlgeschlagen')
+  }
+  return (await response.json()) as { status: string; id: string }
 }

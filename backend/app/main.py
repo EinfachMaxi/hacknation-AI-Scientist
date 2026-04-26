@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 
 from backend.app.config import Settings, get_settings
 from backend.app.schemas.plan import (
+    AcceptDraftResponse,
     AgentMessage,
     AgentEvent,
     CorrectionRequest,
@@ -20,6 +21,14 @@ from backend.app.schemas.plan import (
     ExperimentRun,
     ExperimentSummary,
     GeneratePlanRequest,
+    KnowledgeCandidates,
+    KnowledgeChatCitation,
+    KnowledgeChatRequest,
+    KnowledgeChatResponse,
+    KnowledgeEdge,
+    KnowledgeNode,
+    KnowledgeProposal,
+    KnowledgeProposalCreate,
     RunGraphEdge,
     RunGraphMeta,
     RunGraphNode,
@@ -31,6 +40,7 @@ from backend.app.schemas.plan import (
 from backend.app.services.agent_registry import AgentRegistry
 from backend.app.services.integrations import SupabaseRepository, TavilyClient
 from backend.app.services.orchestrator import PlanOrchestrator
+from backend.app.services import pkm as pkm_service
 
 app = FastAPI(title="AI Scientist Backend", version="0.1.0")
 settings = get_settings()
@@ -348,8 +358,8 @@ async def get_plan(plan_id: str) -> ExperimentPlan:
 
 
 @app.get("/knowledge")
-async def list_knowledge() -> dict:
-    return await repository.list_knowledge()
+async def list_knowledge(status: str = "active") -> dict:
+    return await repository.list_knowledge(status=status)
 
 
 @app.post("/plans/{plan_id}/corrections")
@@ -362,8 +372,11 @@ async def add_correction(plan_id: str, correction: CorrectionRequest) -> dict:
         "experiment_type": correction.experiment_type,
         "content": f"{correction.old_value} -> {correction.new_value}. Reason: {correction.reason}",
         "metadata": correction.model_dump(),
-        "confidence_score": 0.8,
+        "confidence": 0.8,
         "times_applied": 1,
+        "status": "active",
+        "source_type": "user_correction",
+        "source_ref": plan_id,
         "created_by": "scientist-review",
         "tags": ["correction", correction.experiment_type],
     }
@@ -372,7 +385,222 @@ async def add_correction(plan_id: str, correction: CorrectionRequest) -> dict:
         "target_id": node_id,
         "relationship_type": "corrects",
         "weight": 1.0,
+        "source_type": "user_correction",
+        "source_ref": plan_id,
     }
     await repository.upsert_knowledge_nodes([node])
     await repository.add_knowledge_edges([edge])
     return {"status": "stored", "node_id": node_id}
+
+
+# === Knowledge Graph: Accept-Draft, Chat, Proposals ========================
+
+
+async def _ingest_candidates_with_dedupe(
+    plan_id: str,
+    candidates: KnowledgeCandidates,
+    settings: Settings,
+) -> tuple[int, int, int]:
+    """Embeddings + Dedupe + Upsert. Liefert (inserted, merged, edges)."""
+    # Embeddings für Kandidaten erzeugen
+    texts = [pkm_service._node_text_for_embedding(node) for node in candidates.nodes]
+    vectors = await pkm_service.embed_texts(settings, texts)
+
+    # Existierende Knoten je Type laden (mit Embedding für Cosine-Vergleich)
+    existing_by_type: dict[str, list[dict]] = {}
+    for node in candidates.nodes:
+        if node.node_type not in existing_by_type:
+            existing_by_type[node.node_type] = await repository.list_knowledge_node_ids(
+                node_type=node.node_type, status="active"
+            )
+
+    inserted = 0
+    merged = 0
+    nodes_to_upsert: list[dict] = []
+    id_remap: dict[str, str] = {}
+
+    for node, vector in zip(candidates.nodes, vectors, strict=False):
+        existing = pkm_service.find_duplicate(
+            node, existing_by_type.get(node.node_type, []), vector
+        )
+        if existing:
+            await repository.increment_knowledge_node_usage(existing["id"])
+            id_remap[node.id] = existing["id"]
+            merged += 1
+            continue
+
+        row = node.model_dump(mode="json")
+        row["status"] = "active"
+        row["source_ref"] = plan_id
+        row["source_type"] = node.source_type or "plan_draft"
+        if vector is not None:
+            row["embedding"] = vector
+        nodes_to_upsert.append(row)
+        inserted += 1
+
+    if nodes_to_upsert:
+        await repository.upsert_knowledge_nodes(nodes_to_upsert)
+
+    # Edges remappen falls Source/Target dedupliziert wurden, dann einfügen.
+    edge_rows: list[dict] = []
+    for edge in candidates.edges:
+        source = id_remap.get(edge.source_id, edge.source_id)
+        target = id_remap.get(edge.target_id, edge.target_id)
+        edge_rows.append(
+            {
+                "source_id": source,
+                "target_id": target,
+                "relationship_type": edge.relationship_type,
+                "weight": edge.weight,
+                "source_type": edge.source_type or "plan_draft",
+                "source_ref": plan_id,
+            }
+        )
+    if edge_rows:
+        await repository.add_knowledge_edges(edge_rows)
+
+    return inserted, merged, len(edge_rows)
+
+
+@app.post("/plans/{plan_id}/accept", response_model=AcceptDraftResponse)
+async def accept_plan_draft(
+    plan_id: str,
+    app_settings: Settings = Depends(get_settings),
+) -> AcceptDraftResponse:
+    """Akzeptiere einen Draft → Wissen-Kandidaten extrahieren, dedupen, upserten."""
+    row = await repository.get_plan(plan_id)
+    if not row:
+        raise _api_error(404, "plan_not_found", "Plan not found")
+    plan = ExperimentPlan.model_validate(row)
+    candidates = pkm_service.extract_knowledge_candidates(plan)
+
+    inserted, merged, edges_count = await _ingest_candidates_with_dedupe(
+        plan_id, candidates, app_settings
+    )
+
+    if isinstance(plan.metadata, dict):
+        plan.metadata["graph_status"] = "active"
+        plan.metadata["accepted_at"] = datetime.utcnow().isoformat()
+        await repository.save_plan(plan.model_dump(mode="json"))
+
+    return AcceptDraftResponse(
+        plan_id=plan_id,
+        inserted_nodes=inserted,
+        merged_nodes=merged,
+        inserted_edges=edges_count,
+        candidate_summary=pkm_service.candidate_summary(candidates),
+    )
+
+
+@app.post("/knowledge/chat", response_model=KnowledgeChatResponse)
+async def knowledge_chat(
+    request: KnowledgeChatRequest,
+    app_settings: Settings = Depends(get_settings),
+) -> KnowledgeChatResponse:
+    """Graph-grounded Q&A mit Citation-Pflicht."""
+    embeddings = await pkm_service.embed_texts(app_settings, [request.query])
+    query_embedding = embeddings[0] if embeddings else None
+
+    rows = await repository.search_knowledge(
+        query_text=request.query,
+        query_embedding=query_embedding,
+        experiment_type=request.experiment_type,
+        match_count=max(1, min(20, request.top_k)),
+    )
+
+    citations = [
+        KnowledgeChatCitation(
+            node_id=str(row["id"]),
+            title=str(row.get("title") or row["id"]),
+            node_type=row.get("node_type", "entity"),
+            score=float(row.get("combined_score") or row.get("vector_score") or 0.0),
+        )
+        for row in rows
+        if row.get("id")
+    ]
+
+    answer = await pkm_service.build_chat_answer(
+        app_settings,
+        request.query,
+        citations,
+        contexts=rows,
+        use_mock=False,
+    )
+    proposed_node = None
+    proposed_edges: list = []
+    if citations:
+        proposed_node, proposed_edges = pkm_service.propose_chat_insight(
+            request.query, answer, citations, request.experiment_type
+        )
+
+    return KnowledgeChatResponse(
+        answer=answer,
+        citations=citations,
+        proposed_save=proposed_node,
+        proposed_edges=proposed_edges,
+    )
+
+
+@app.post("/knowledge/proposals", response_model=KnowledgeProposal)
+async def create_knowledge_proposal(
+    proposal: KnowledgeProposalCreate,
+) -> KnowledgeProposal:
+    row = await repository.create_knowledge_proposal(
+        {
+            "kind": proposal.kind,
+            "source_ref": proposal.source_ref,
+            "payload": proposal.payload.model_dump(mode="json"),
+            "created_by": proposal.created_by or "chat-user",
+            "status": "pending",
+        }
+    )
+    return KnowledgeProposal(
+        id=str(row["id"]),
+        kind=row["kind"],
+        source_ref=row.get("source_ref"),
+        payload=KnowledgeCandidates.model_validate(row.get("payload") or {}),
+        status=row.get("status", "pending"),
+        created_by=row.get("created_by"),
+        created_at=_safe_dt(row.get("created_at")),
+        decided_at=_safe_dt(row.get("decided_at")),
+    )
+
+
+@app.post("/knowledge/proposals/{proposal_id}/confirm", response_model=AcceptDraftResponse)
+async def confirm_knowledge_proposal(
+    proposal_id: str,
+    app_settings: Settings = Depends(get_settings),
+) -> AcceptDraftResponse:
+    proposal = await repository.get_knowledge_proposal(proposal_id)
+    if not proposal:
+        raise _api_error(404, "proposal_not_found", "Proposal not found")
+    if proposal.get("status") != "pending":
+        raise _api_error(409, "proposal_decided", "Proposal already decided")
+
+    payload = proposal.get("payload") or {}
+    candidates = KnowledgeCandidates.model_validate(payload)
+    source_ref = proposal.get("source_ref") or proposal_id
+
+    inserted, merged, edges_count = await _ingest_candidates_with_dedupe(
+        source_ref, candidates, app_settings
+    )
+    await repository.update_knowledge_proposal_status(proposal_id, "confirmed")
+
+    return AcceptDraftResponse(
+        plan_id=source_ref,
+        inserted_nodes=inserted,
+        merged_nodes=merged,
+        inserted_edges=edges_count,
+        candidate_summary=pkm_service.candidate_summary(candidates),
+    )
+
+
+@app.post("/knowledge/proposals/{proposal_id}/reject")
+async def reject_knowledge_proposal(proposal_id: str) -> dict:
+    proposal = await repository.get_knowledge_proposal(proposal_id)
+    if not proposal:
+        raise _api_error(404, "proposal_not_found", "Proposal not found")
+    if proposal.get("status") != "pending":
+        raise _api_error(409, "proposal_decided", "Proposal already decided")
+    await repository.update_knowledge_proposal_status(proposal_id, "rejected")
+    return {"status": "rejected", "id": proposal_id}

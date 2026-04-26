@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
-import { loadPlan } from '../../lib/api'
-import type { ExperimentPlan } from '../../types/plan'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { acceptPlanDraft, loadPlan } from '../../lib/api'
+import type { AcceptDraftResponse, ExperimentPlan } from '../../types/plan'
 import './ExperimentPlanDetail.css'
 
 const steps = [
@@ -30,6 +30,7 @@ const tabs: {id:Tab;l:string;i:string}[] = [
 export default function ExperimentPlanDetail() {
   const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const routePlan = (location.state as { plan?: ExperimentPlan } | null)?.plan
   const currentPlan = useMemo(() => {
     if (routePlan) {
@@ -42,6 +43,33 @@ export default function ExperimentPlanDetail() {
   }, [id, routePlan])
   const [at, setAt] = useState<Tab>('protocol')
   const [sr, setSr] = useState(true)
+  const initialGraphStatus = (currentPlan?.metadata?.graph_status as string | undefined) ?? 'draft'
+  const [graphStatus, setGraphStatus] = useState<string>(initialGraphStatus)
+  const [accepting, setAccepting] = useState(false)
+  const [acceptResult, setAcceptResult] = useState<AcceptDraftResponse | null>(null)
+  const [acceptError, setAcceptError] = useState<string | null>(null)
+
+  const planId = currentPlan?.plan_id ?? id ?? null
+
+  const handleAccept = async (): Promise<void> => {
+    if (!planId || accepting) {
+      return
+    }
+    setAccepting(true)
+    setAcceptError(null)
+    try {
+      const result = await acceptPlanDraft(planId)
+      setAcceptResult(result)
+      setGraphStatus('active')
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : 'Accept fehlgeschlagen')
+    } finally {
+      setAccepting(false)
+    }
+  }
+
+  const isActive = graphStatus === 'active'
+  const badgeLabel = isActive ? 'ACTIVE' : 'DRAFT'
 
   const protocolSteps = currentPlan?.protocol.steps ?? steps.map((s, index) => ({
     step_number: index + 1,
@@ -69,18 +97,82 @@ export default function ExperimentPlanDetail() {
         <header className="ed__h animate-fadeIn">
           <div style={{display:'flex',flexDirection:'column',gap:8,maxWidth:800}}>
             <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <span className="ed__badge font-label-caps">DRAFT</span>
+              <span
+                className="ed__badge font-label-caps"
+                style={isActive ? {background:'color-mix(in srgb, var(--primary) 14%, transparent)', color:'var(--primary)'} : undefined}
+              >{badgeLabel}</span>
               <h1 className="font-headline-md" style={{color:'var(--on-surface)'}}>{currentPlan?.title ?? 'EXP-8492: Graphene Oxide Sensor Calibration'}</h1>
             </div>
             <p className="font-body-base" style={{color:'var(--on-surface-variant)'}}>
               <span style={{fontWeight:500,color:'var(--on-surface)'}}>Hypothesis:</span> {currentPlan?.hypothesis ?? 'Optimizing thermal reduction at 450°C in argon will increase VOC sensitivity by 25%.'}
             </p>
           </div>
-          <button className="ed__export" id="export-pdf-btn">
-            <span className="material-symbols-outlined" style={{fontSize:18}}>picture_as_pdf</span>
-            <span className="font-label-caps">EXPORT PDF</span>
-          </button>
+          <div style={{display:'flex',gap:12,alignItems:'center'}}>
+            {!isActive && (
+              <button
+                className="ed__export"
+                id="accept-draft-btn"
+                onClick={handleAccept}
+                disabled={accepting || !planId}
+                style={{
+                  background:'var(--primary)',
+                  color:'var(--on-primary)',
+                  borderColor:'var(--primary)',
+                  opacity: accepting ? 0.65 : 1,
+                  cursor: accepting ? 'wait' : 'pointer',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{fontSize:18}}>
+                  {accepting ? 'hourglass_top' : 'task_alt'}
+                </span>
+                <span className="font-label-caps">{accepting ? 'INGESTING…' : 'ACCEPT DRAFT'}</span>
+              </button>
+            )}
+            <button className="ed__export" id="export-pdf-btn">
+              <span className="material-symbols-outlined" style={{fontSize:18}}>picture_as_pdf</span>
+              <span className="font-label-caps">EXPORT PDF</span>
+            </button>
+          </div>
         </header>
+
+        {(acceptResult || acceptError) && (
+          <div
+            className="animate-fadeIn"
+            style={{
+              padding:'12px 16px',
+              borderRadius:8,
+              border:'1px solid var(--outline-variant)',
+              background:'var(--surface-container-lowest)',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'space-between',
+              gap:16,
+            }}
+          >
+            {acceptResult ? (
+              <>
+                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                  <span className="font-label-caps" style={{color:'var(--primary)'}}>DRAFT INGESTED</span>
+                  <span className="font-body-base" style={{color:'var(--on-surface)'}}>
+                    <strong>{acceptResult.inserted_nodes}</strong> neue Knoten · <strong>{acceptResult.merged_nodes}</strong> dedupliziert · <strong>{acceptResult.inserted_edges}</strong> Kanten
+                  </span>
+                </div>
+                <button
+                  className="ed__export"
+                  onClick={() => navigate('/knowledge-garden')}
+                  style={{borderColor:'var(--primary)',color:'var(--primary)'}}
+                >
+                  <span className="material-symbols-outlined" style={{fontSize:18}}>account_tree</span>
+                  <span className="font-label-caps">OPEN GRAPH</span>
+                </button>
+              </>
+            ) : (
+              <span className="font-body-base" style={{color:'var(--error)'}}>
+                {acceptError}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="ed__grid">
           <div className="ed__main">

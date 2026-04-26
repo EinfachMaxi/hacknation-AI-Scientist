@@ -389,23 +389,285 @@ class SupabaseRepository:
                 return
 
     async def list_plans(self) -> list[dict[str, Any]]:
+        if self._supabase:
+            try:
+                rows = (
+                    self._supabase.table("plans")
+                    .select("*")
+                    .order("generated_at", desc=True)
+                    .limit(200)
+                    .execute()
+                    .data
+                    or []
+                )
+                for row in rows:
+                    self._plans[row["plan_id"]] = row
+                if rows:
+                    return rows
+            except Exception:  # noqa: BLE001
+                pass
         rows = list(self._plans.values())
         return sorted(rows, key=lambda item: item["generated_at"], reverse=True)
 
     async def get_plan(self, plan_id: str) -> dict[str, Any] | None:
-        return self._plans.get(plan_id)
+        if plan_id in self._plans:
+            return self._plans[plan_id]
+        if self._supabase:
+            try:
+                rows = (
+                    self._supabase.table("plans")
+                    .select("*")
+                    .eq("plan_id", plan_id)
+                    .limit(1)
+                    .execute()
+                    .data
+                    or []
+                )
+                if rows:
+                    self._plans[plan_id] = rows[0]
+                    return rows[0]
+            except Exception:  # noqa: BLE001
+                pass
+        return None
 
     async def upsert_knowledge_nodes(self, nodes: list[dict[str, Any]]) -> None:
         now = datetime.utcnow().isoformat()
         for node in nodes:
             node.setdefault("created_at", now)
             self._knowledge_nodes[node["id"]] = node
+        if self._supabase and nodes:
+            try:
+                # Wir entfernen `_embedding`-Helper und alle None-Werte, damit
+                # DB-Defaults (z.B. `created_at`) greifen können.
+                payload = []
+                for node in nodes:
+                    row = {
+                        k: v
+                        for k, v in node.items()
+                        if k != "_embedding" and v is not None
+                    }
+                    payload.append(row)
+                self._supabase.table("knowledge_nodes").upsert(
+                    payload, on_conflict="id"
+                ).execute()
+            except Exception as exc:  # noqa: BLE001
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "upsert_knowledge_nodes failed against Supabase: %s", exc
+                )
+                raise
 
     async def add_knowledge_edges(self, edges: list[dict[str, Any]]) -> None:
         self._knowledge_edges.extend(edges)
+        if self._supabase and edges:
+            try:
+                payload = [
+                    {k: v for k, v in edge.items() if v is not None}
+                    for edge in edges
+                ]
+                self._supabase.table("knowledge_edges").upsert(
+                    payload, on_conflict="source_id,target_id,relationship_type"
+                ).execute()
+            except Exception as exc:  # noqa: BLE001
+                import logging
 
-    async def list_knowledge(self) -> dict[str, Any]:
-        return {
-            "nodes": list(self._knowledge_nodes.values()),
-            "edges": self._knowledge_edges,
+                logging.getLogger(__name__).warning(
+                    "add_knowledge_edges failed against Supabase: %s", exc
+                )
+
+    async def list_knowledge(
+        self, *, status: str | None = "active"
+    ) -> dict[str, Any]:
+        if self._supabase:
+            try:
+                node_query = self._supabase.table("knowledge_nodes").select(
+                    "id,title,node_type,experiment_type,content,metadata,tags,status,"
+                    "source_type,source_ref,confidence,times_applied,created_by,created_at"
+                )
+                if status and status != "all":
+                    node_query = node_query.eq("status", status)
+                node_rows = node_query.limit(500).execute().data or []
+                edge_rows = (
+                    self._supabase.table("knowledge_edges")
+                    .select("*")
+                    .limit(2000)
+                    .execute()
+                    .data
+                    or []
+                )
+                return {"nodes": node_rows, "edges": edge_rows}
+            except Exception as exc:  # noqa: BLE001
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "list_knowledge supabase fallback to memory: %s", exc
+                )
+        nodes = list(self._knowledge_nodes.values())
+        if status and status != "all":
+            nodes = [n for n in nodes if n.get("status", "active") == status]
+        return {"nodes": nodes, "edges": self._knowledge_edges}
+
+    async def list_knowledge_node_ids(
+        self, *, node_type: str | None = None, status: str = "active"
+    ) -> list[dict[str, Any]]:
+        """Schlanke Liste für Dedupe-Lookups: id, title, node_type, embedding."""
+        if self._supabase:
+            try:
+                query = self._supabase.table("knowledge_nodes").select(
+                    "id,title,node_type,status,embedding"
+                ).eq("status", status)
+                if node_type:
+                    query = query.eq("node_type", node_type)
+                rows = query.limit(1000).execute().data or []
+                return rows
+            except Exception:  # noqa: BLE001
+                pass
+        rows = [n for n in self._knowledge_nodes.values() if n.get("status", "active") == status]
+        if node_type:
+            rows = [n for n in rows if n.get("node_type") == node_type]
+        return rows
+
+    async def increment_knowledge_node_usage(self, node_id: str) -> None:
+        """Bei Dedupe-Treffer: times_applied hochzählen."""
+        existing = self._knowledge_nodes.get(node_id)
+        if existing:
+            existing["times_applied"] = int(existing.get("times_applied", 1)) + 1
+        if self._supabase:
+            try:
+                row = (
+                    self._supabase.table("knowledge_nodes")
+                    .select("times_applied")
+                    .eq("id", node_id)
+                    .limit(1)
+                    .execute()
+                    .data
+                    or []
+                )
+                current = int(row[0].get("times_applied", 1)) if row else 1
+                self._supabase.table("knowledge_nodes").update(
+                    {"times_applied": current + 1}
+                ).eq("id", node_id).execute()
+            except Exception:  # noqa: BLE001
+                pass
+
+    async def search_knowledge(
+        self,
+        *,
+        query_text: str,
+        query_embedding: list[float] | None,
+        experiment_type: str | None = None,
+        match_count: int = 8,
+    ) -> list[dict[str, Any]]:
+        """Hybride Suche via RPC `knowledge_search`. Fällt auf Memory zurück."""
+        if self._supabase:
+            try:
+                result = self._supabase.rpc(
+                    "knowledge_search",
+                    {
+                        "query_embedding": query_embedding,
+                        "query_text": query_text,
+                        "experiment_type_filter": experiment_type,
+                        "match_count": match_count,
+                    },
+                ).execute()
+                rows = result.data or []
+                if rows:
+                    return rows
+            except Exception as exc:  # noqa: BLE001
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "knowledge_search RPC fallback to memory: %s", exc
+                )
+        # Memory-Fallback: einfache substring-Suche.
+        haystack = list(self._knowledge_nodes.values())
+        query_lower = (query_text or "").lower()
+        scored = []
+        for node in haystack:
+            if node.get("status") != "active":
+                continue
+            if experiment_type and node.get("experiment_type") != experiment_type:
+                continue
+            text = " ".join([
+                str(node.get("title") or ""),
+                str(node.get("content") or ""),
+                " ".join(node.get("tags") or []),
+            ]).lower()
+            score = 1.0 if query_lower and query_lower in text else 0.0
+            if score > 0:
+                scored.append({**node, "combined_score": score, "vector_score": 0.0, "trigram_score": score})
+        scored.sort(key=lambda r: r.get("combined_score", 0), reverse=True)
+        return scored[:match_count]
+
+    async def create_knowledge_proposal(self, proposal: dict[str, Any]) -> dict[str, Any]:
+        if self._supabase:
+            try:
+                inserted = (
+                    self._supabase.table("knowledge_proposals")
+                    .insert(proposal)
+                    .execute()
+                    .data
+                    or []
+                )
+                if inserted:
+                    return inserted[0]
+            except Exception as exc:  # noqa: BLE001
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "create_knowledge_proposal supabase fallback: %s", exc
+                )
+        from uuid import uuid4 as _uuid4
+
+        row = {
+            **proposal,
+            "id": str(_uuid4()),
+            "created_at": datetime.utcnow().isoformat(),
+            "status": proposal.get("status", "pending"),
         }
+        self._knowledge_proposals = getattr(self, "_knowledge_proposals", {})
+        self._knowledge_proposals[row["id"]] = row
+        return row
+
+    async def get_knowledge_proposal(self, proposal_id: str) -> dict[str, Any] | None:
+        if self._supabase:
+            try:
+                rows = (
+                    self._supabase.table("knowledge_proposals")
+                    .select("*")
+                    .eq("id", proposal_id)
+                    .limit(1)
+                    .execute()
+                    .data
+                    or []
+                )
+                if rows:
+                    return rows[0]
+            except Exception:  # noqa: BLE001
+                pass
+        return getattr(self, "_knowledge_proposals", {}).get(proposal_id)
+
+    async def update_knowledge_proposal_status(
+        self, proposal_id: str, status: str
+    ) -> dict[str, Any] | None:
+        patch = {"status": status, "decided_at": datetime.utcnow().isoformat()}
+        if self._supabase:
+            try:
+                rows = (
+                    self._supabase.table("knowledge_proposals")
+                    .update(patch)
+                    .eq("id", proposal_id)
+                    .execute()
+                    .data
+                    or []
+                )
+                if rows:
+                    return rows[0]
+            except Exception:  # noqa: BLE001
+                pass
+        existing = getattr(self, "_knowledge_proposals", {}).get(proposal_id)
+        if existing:
+            existing.update(patch)
+            return existing
+        return None
