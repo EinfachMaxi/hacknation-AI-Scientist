@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "sync:design": "node ./scripts/sync-design-tokens.mjs",
+    "dev": "npm run sync:design && vite",
+    "build": "npm run sync:design && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

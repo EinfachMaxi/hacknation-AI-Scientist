@@ -400,7 +400,7 @@ export default function LiveAgentProgress() {
                 <div className="agent-card__footer">
                   <span className="font-label-caps" style={{ color: 'var(--outline)', fontSize: 10 }}>STATUS: {agent.status}</span>
                   <div className="agent-card__bars">
-                    {Array.from({ length: 5 }, (_, k) => <div key={k} className="agent-card__bar" style={{ background: k < Math.round((agent.progress / 100) * 5) ? colorMap[agent.color] : '#334155' }} />)}
+                    {Array.from({ length: 5 }, (_, k) => <div key={k} className="agent-card__bar" style={{ background: k < Math.round((agent.progress / 100) * 5) ? colorMap[agent.color] : 'var(--progress-empty-bar)' }} />)}
                   </div>
                 </div>
               </div>

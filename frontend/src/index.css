@@ -1,55 +1,6 @@
 /* ===== THE AI SCIENTIST — DESIGN SYSTEM ===== */
-/* Scientific Modern · Glassmorphism · Dark Mode */
-
-:root {
-  --primary: #5d7cff;
-  --primary-container: #445fd4;
-  --on-primary: #f3f6ff;
-  --on-primary-container: #ecf1ff;
-  --primary-fixed: #7b95ff;
-  --primary-fixed-dim: #5d7cff;
-  --inverse-primary: #4f69de;
-  --secondary: #5ea477;
-  --secondary-container: #3f7a58;
-  --on-secondary: #e9f6ee;
-  --on-secondary-container: #dbf1e4;
-  --secondary-fixed: #79bb90;
-  --secondary-fixed-dim: #5ea477;
-  --tertiary: #c7a56f;
-  --tertiary-container: #97774a;
-  --on-tertiary: #faf2e7;
-  --on-tertiary-container: #f6ebdb;
-  --tertiary-fixed: #d6b685;
-  --tertiary-fixed-dim: #c7a56f;
-  --error: #d16d7b;
-  --error-container: #8f3c49;
-  --on-error: #fff5f6;
-  --on-error-container: #ffe9ec;
-  --background: #10141d;
-  --on-background: #e5eaf4;
-  --surface: #10141d;
-  --surface-dim: #10141d;
-  --surface-bright: #2a3140;
-  --surface-container-lowest: #0b0f16;
-  --surface-container-low: #171c27;
-  --surface-container: #1d2330;
-  --surface-container-high: #242c3a;
-  --surface-container-highest: #2e3646;
-  --surface-variant: #2e3646;
-  --on-surface: #e5eaf4;
-  --on-surface-variant: #b4bccb;
-  --surface-tint: #aeb9d3;
-  --inverse-surface: #dfe4ef;
-  --inverse-on-surface: #202633;
-  --outline: #8590a4;
-  --outline-variant: #3a4355;
-  --unit: 4px;
-  --gutter: 16px;
-  --margin: 24px;
-  --container-max: 1440px;
-  --sidebar-width: 256px;
-  --header-height: 64px;
-}
+/* Source of truth for tokens is designb.md */
+@import './styles/design-tokens.css';
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
@@ -102,7 +53,7 @@ body {
 
 a { color: inherit; text-decoration: none; }
 input, textarea { outline: none; border: none; background: none; color: inherit; font: inherit; }
-input::placeholder, textarea::placeholder { color: rgba(140, 144, 159, 0.5); }
+input::placeholder, textarea::placeholder { color: var(--text-placeholder); }
 textarea { resize: none; }
 button { border: none; background: none; color: inherit; font: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
