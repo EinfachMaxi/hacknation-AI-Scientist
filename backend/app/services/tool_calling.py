@@ -7,7 +7,21 @@ from urllib.parse import urlparse
 
 from backend.app.services.integrations import TavilyClient
 
-DEFAULT_ALLOWLIST = ("pubmed", "nature", "science", "arxiv", "protocols.io", "semanticscholar")
+DEFAULT_ALLOWLIST = (
+    "pubmed",
+    "nature",
+    "science",
+    "arxiv",
+    "protocols.io",
+    "semanticscholar",
+    "sigmaaldrich",
+    "thermofisher",
+    "neb.com",
+    "bio-rad",
+    "abcam",
+    "retractionwatch",
+    "bio-protocol",
+)
 
 
 @dataclass
@@ -105,3 +119,137 @@ class TavilyToolGateway:
             payload={"urls": filtered_urls, "result_count": len(results)},
         )
         return results, trace
+
+    async def search_domains(
+        self,
+        query: str,
+        *,
+        include_domains: list[str] | None = None,
+        max_results: int = 3,
+        call_index: int = 1,
+    ) -> tuple[list[dict[str, Any]], ToolTrace]:
+        results = await self._call_with_retry(
+            lambda: self._tavily.search_domains(
+                query,
+                include_domains=include_domains,
+                max_results=max_results,
+            )
+        )
+        trimmed = results[:max_results]
+        trace = ToolTrace(
+            tool="tavily.search",
+            status="completed",
+            call_index=call_index,
+            payload={
+                "query": query,
+                "include_domains": include_domains or [],
+                "result_count": len(trimmed),
+                "max_results": max_results,
+            },
+        )
+        return trimmed, trace
+
+    async def crawl(
+        self,
+        url: str,
+        *,
+        instructions: str | None = None,
+        max_depth: int = 1,
+        max_breadth: int = 10,
+        chunks_per_source: int | None = None,
+        call_index: int = 1,
+    ) -> tuple[list[dict[str, Any]], ToolTrace]:
+        if not self.is_allowed_url(url):
+            trace = ToolTrace(
+                tool="tavily.crawl",
+                status="skipped",
+                call_index=call_index,
+                payload={"reason": "domain_not_in_allowlist", "url": url},
+            )
+            return [], trace
+        results = await self._call_with_retry(
+            lambda: self._tavily.crawl(
+                url,
+                instructions=instructions,
+                max_depth=max_depth,
+                max_breadth=max_breadth,
+                chunks_per_source=chunks_per_source,
+            )
+        )
+        trace = ToolTrace(
+            tool="tavily.crawl",
+            status="completed",
+            call_index=call_index,
+            payload={
+                "url": url,
+                "instructions": instructions,
+                "result_count": len(results),
+                "max_depth": max_depth,
+            },
+        )
+        return results, trace
+
+    async def map(
+        self,
+        url: str,
+        *,
+        instructions: str | None = None,
+        max_depth: int = 2,
+        max_breadth: int = 50,
+        limit: int = 50,
+        select_paths: list[str] | None = None,
+        call_index: int = 1,
+    ) -> tuple[list[str], ToolTrace]:
+        if not self.is_allowed_url(url):
+            trace = ToolTrace(
+                tool="tavily.map",
+                status="skipped",
+                call_index=call_index,
+                payload={"reason": "domain_not_in_allowlist", "url": url},
+            )
+            return [], trace
+        urls = await self._call_with_retry(
+            lambda: self._tavily.map(
+                url,
+                instructions=instructions,
+                max_depth=max_depth,
+                max_breadth=max_breadth,
+                limit=limit,
+                select_paths=select_paths,
+            )
+        )
+        trace = ToolTrace(
+            tool="tavily.map",
+            status="completed",
+            call_index=call_index,
+            payload={"url": url, "instructions": instructions, "url_count": len(urls)},
+        )
+        return urls, trace
+
+    async def research(
+        self,
+        input_text: str,
+        *,
+        model: str = "mini",
+        citation_format: str = "numbered",
+        call_index: int = 1,
+    ) -> tuple[dict[str, Any], ToolTrace]:
+        data = await self._call_with_retry(
+            lambda: self._tavily.research(
+                input_text,
+                model=model,
+                citation_format=citation_format,
+            )
+        )
+        trace = ToolTrace(
+            tool="tavily.research",
+            status="completed",
+            call_index=call_index,
+            payload={
+                "input": input_text[:200],
+                "model": model,
+                "has_report": bool(data.get("report") or data.get("answer")),
+                "source_count": len(data.get("sources") or data.get("citations") or []),
+            },
+        )
+        return data, trace

@@ -41,7 +41,11 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
         "prompt_template": "Find similar work and novelty signal for the hypothesis.",
         "is_active": True,
         "sort_order": 10,
-        "metadata": {},
+        "metadata": {
+            "allowed_tools": ["tavily.search", "tavily.extract"],
+            "max_tool_calls": 2,
+            "max_results": 3,
+        },
     },
     {
         "key": "protocol",
@@ -52,7 +56,15 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
         "prompt_template": "Build protocol steps and controls.",
         "is_active": True,
         "sort_order": 20,
-        "metadata": {},
+        "metadata": {
+            "allowed_tools": ["tavily.search", "tavily.extract"],
+            "max_tool_calls": 2,
+            "include_domains": [
+                "protocols.io",
+                "nature.com",
+                "bio-protocol.org",
+            ],
+        },
     },
     {
         "key": "materials",
@@ -63,7 +75,17 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
         "prompt_template": "Find materials with supplier and catalog number.",
         "is_active": True,
         "sort_order": 30,
-        "metadata": {},
+        "metadata": {
+            "allowed_tools": ["tavily.search", "tavily.extract"],
+            "max_tool_calls": 3,
+            "include_domains": [
+                "sigmaaldrich.com",
+                "thermofisher.com",
+                "neb.com",
+                "bio-rad.com",
+                "abcam.com",
+            ],
+        },
     },
     {
         "key": "budget",
@@ -74,7 +96,10 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
         "prompt_template": "Calculate a detailed budget from materials.",
         "is_active": True,
         "sort_order": 40,
-        "metadata": {},
+        "metadata": {
+            "allowed_tools": ["tavily.extract"],
+            "max_tool_calls": 2,
+        },
     },
     {
         "key": "timeline",
@@ -85,7 +110,15 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
         "prompt_template": "Create timeline from protocol steps and dependencies.",
         "is_active": True,
         "sort_order": 50,
-        "metadata": {},
+        "metadata": {
+            "allowed_tools": ["tavily.search"],
+            "max_tool_calls": 2,
+            "include_domains": [
+                "protocols.io",
+                "nature.com",
+                "bio-protocol.org",
+            ],
+        },
     },
     {
         "key": "review",
@@ -96,7 +129,10 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
         "prompt_template": "Find internal issues and return warnings/errors.",
         "is_active": True,
         "sort_order": 60,
-        "metadata": {},
+        "metadata": {
+            "allowed_tools": ["tavily.search"],
+            "max_tool_calls": 2,
+        },
     },
 ]
 

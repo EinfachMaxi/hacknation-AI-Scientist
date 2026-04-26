@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Reference(BaseModel):
@@ -34,6 +34,8 @@ class ProtocolStep(BaseModel):
 
 
 class Protocol(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     steps: list[ProtocolStep] = Field(default_factory=list, max_length=15)
     total_duration: str
     controls: list[str] = Field(default_factory=list)
@@ -59,6 +61,8 @@ class BudgetBreakdown(BaseModel):
 
 
 class Budget(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     total: float
     currency: str = "EUR"
     breakdown: BudgetBreakdown
@@ -74,6 +78,8 @@ class TimelinePhase(BaseModel):
 
 
 class Timeline(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     phases: list[TimelinePhase]
     total_duration: str
 
@@ -85,7 +91,7 @@ class Validation(BaseModel):
 
 
 class ReviewIssue(BaseModel):
-    severity: Literal["warning", "error"]
+    severity: Literal["info", "warning", "error"]
     message: str
     path: str
 

@@ -22,7 +22,10 @@ class Settings(BaseSettings):
     agent_tool_max_calls: int = 3
     agent_tool_timeout_seconds: int = 20
     agent_tool_max_retries: int = 1
-    agent_tool_domain_allowlist: str = "pubmed,nature,science,arxiv,protocols.io,semanticscholar"
+    agent_tool_domain_allowlist: str = (
+        "pubmed,nature,science,arxiv,protocols.io,semanticscholar,bio-protocol,"
+        "sigmaaldrich,thermofisher,neb.com,bio-rad,abcam,retractionwatch,pubpeer"
+    )
 
 
 @lru_cache

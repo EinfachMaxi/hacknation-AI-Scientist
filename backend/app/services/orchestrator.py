@@ -18,8 +18,8 @@ from backend.app.services.integrations import SupabaseRepository, TavilyClient
 from backend.app.services.message_bus import AgentBus, MessageBus
 from backend.app.services.planner import Planner
 
-AGENT_TIMEOUT_S = 30
-REVIEW_TIMEOUT_S = 20
+AGENT_TIMEOUT_S = 120
+REVIEW_TIMEOUT_S = 60
 PLANNER_AGENT_KEY = "planner"
 SPAWN_DELAY_S = 0.45
 

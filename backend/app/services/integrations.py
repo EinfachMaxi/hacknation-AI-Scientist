@@ -46,6 +46,124 @@ class TavilyClient:
         results = data.get("results", [])
         return results if isinstance(results, list) else []
 
+    async def search_domains(
+        self,
+        query: str,
+        *,
+        include_domains: list[str] | None = None,
+        max_results: int = 3,
+    ) -> list[dict[str, Any]]:
+        """Wie `search`, aber mit Domain-Filter (Tavily-seitig)."""
+        if not self._settings.tavily_api_key:
+            return []
+        payload: dict[str, Any] = {
+            "api_key": self._settings.tavily_api_key,
+            "query": query,
+            "search_depth": "advanced",
+            "max_results": max_results,
+        }
+        if include_domains:
+            payload["include_domains"] = include_domains
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(f"{self._base_url}/search", json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(
+                    f"Tavily /search failed ({response.status_code}): {response.text[:300]}"
+                )
+            data = response.json()
+        return data.get("results", [])
+
+    async def crawl(
+        self,
+        url: str,
+        *,
+        instructions: str | None = None,
+        max_depth: int = 1,
+        max_breadth: int = 10,
+        chunks_per_source: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Deep-Crawl einer Site; optional mit NL-`instructions` zur semantischen Fokussierung."""
+        if not self._settings.tavily_api_key or not url:
+            return []
+        payload: dict[str, Any] = {
+            "api_key": self._settings.tavily_api_key,
+            "url": url,
+            "max_depth": max_depth,
+            "max_breadth": max_breadth,
+        }
+        if instructions:
+            payload["instructions"] = instructions
+            if chunks_per_source is not None:
+                payload["chunks_per_source"] = chunks_per_source
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(f"{self._base_url}/crawl", json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(
+                    f"Tavily /crawl failed ({response.status_code}): {response.text[:300]}"
+                )
+            data = response.json()
+        results = data.get("results", [])
+        return results if isinstance(results, list) else []
+
+    async def map(
+        self,
+        url: str,
+        *,
+        instructions: str | None = None,
+        max_depth: int = 2,
+        max_breadth: int = 50,
+        limit: int = 50,
+        select_paths: list[str] | None = None,
+    ) -> list[str]:
+        """Sitemap-Discovery – liefert nur URLs, keinen Content."""
+        if not self._settings.tavily_api_key or not url:
+            return []
+        payload: dict[str, Any] = {
+            "api_key": self._settings.tavily_api_key,
+            "url": url,
+            "max_depth": max_depth,
+            "max_breadth": max_breadth,
+            "limit": limit,
+        }
+        if instructions:
+            payload["instructions"] = instructions
+        if select_paths:
+            payload["select_paths"] = select_paths
+        async with httpx.AsyncClient(timeout=25) as client:
+            response = await client.post(f"{self._base_url}/map", json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(
+                    f"Tavily /map failed ({response.status_code}): {response.text[:300]}"
+                )
+            data = response.json()
+        urls = data.get("results") or data.get("urls") or []
+        return [str(entry) for entry in urls if entry]
+
+    async def research(
+        self,
+        input_text: str,
+        *,
+        model: str = "mini",
+        citation_format: str = "numbered",
+    ) -> dict[str, Any]:
+        """End-to-End Agentic Research: liefert Report + Quellen."""
+        if not self._settings.tavily_api_key or not input_text:
+            return {}
+        payload = {
+            "api_key": self._settings.tavily_api_key,
+            "input": input_text,
+            "model": model,
+            "citation_format": citation_format,
+        }
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.post(f"{self._base_url}/research", json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(
+                    f"Tavily /research failed ({response.status_code}): {response.text[:300]}"
+                )
+            data = response.json()
+        return data if isinstance(data, dict) else {}
+
 
 class SupabaseRepository:
     def __init__(self, settings: Settings) -> None:
