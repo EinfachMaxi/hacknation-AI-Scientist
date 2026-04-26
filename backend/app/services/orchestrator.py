@@ -119,7 +119,7 @@ class PlanOrchestrator:
             try:
                 await publish_event(state, "protocol", "progress", "started", {}, "Protocol agent gestartet")
                 proto = await asyncio.wait_for(
-                    protocol_designer(state["prompt"], self._settings),
+                    protocol_designer(state["prompt"], self._settings, state["use_mock"]),
                     timeout=AGENT_TIMEOUT_S,
                 )
                 await publish_event(state, "protocol", "progress", "completed", {"protocol": proto}, "Protokoll erstellt")

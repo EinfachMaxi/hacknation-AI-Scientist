@@ -74,7 +74,32 @@ async def literature_scout(prompt: str, tavily: TavilyClient, settings: Settings
     }
 
 
-async def protocol_designer(prompt: str, settings: Settings) -> dict[str, Any]:
+async def protocol_designer(prompt: str, settings: Settings, use_mock: bool) -> dict[str, Any]:
+    if use_mock:
+        return {
+            "steps": [
+                {
+                    "step_number": 1,
+                    "action": "Prepare CRP standards and controls",
+                    "duration": "30 minutes",
+                    "details": f"Set up dilution series for hypothesis: {prompt}",
+                },
+                {
+                    "step_number": 2,
+                    "action": "Run assay incubation and wash steps",
+                    "duration": "90 minutes",
+                    "details": "Execute binding, washing, and detection sequence under standard conditions.",
+                },
+                {
+                    "step_number": 3,
+                    "action": "Measure signal and document results",
+                    "duration": "45 minutes",
+                    "details": "Capture readouts and export data for downstream validation.",
+                },
+            ],
+            "total_duration": "1 working day",
+            "controls": ["Negative control", "Positive CRP standard", "Matrix control (whole blood)"],
+        }
     return await _openai_json(
         settings,
         "You are a protocol designer. Return JSON with keys: steps, total_duration, controls. Max 12 steps.",

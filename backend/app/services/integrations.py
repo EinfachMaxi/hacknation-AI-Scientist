@@ -43,6 +43,28 @@ class SupabaseRepository:
         if settings.supabase_url and settings.supabase_service_key:
             self._supabase = create_client(settings.supabase_url, settings.supabase_service_key)
 
+    def _next_local_sequence(self, run_id: str) -> int:
+        seq = self._event_sequence.get(run_id, 0) + 1
+        self._event_sequence[run_id] = seq
+        return seq
+
+    def _next_sequence_from_supabase(self, run_id: str) -> int:
+        if not self._supabase:
+            return self._next_local_sequence(run_id)
+        result = (
+            self._supabase.table("agent_events")
+            .select("sequence")
+            .eq("run_id", run_id)
+            .order("sequence", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data or []
+        current = rows[0]["sequence"] if rows else 0
+        next_sequence = current + 1
+        self._event_sequence[run_id] = max(self._event_sequence.get(run_id, 0), next_sequence)
+        return next_sequence
+
     async def create_run(self, run: dict[str, Any]) -> None:
         self._runs[run["run_id"]] = run
         if self._supabase:
@@ -69,13 +91,27 @@ class SupabaseRepository:
 
     async def append_agent_event(self, event: dict[str, Any]) -> dict[str, Any]:
         run_id = event["run_id"]
-        seq = self._event_sequence.get(run_id, 0) + 1
-        self._event_sequence[run_id] = seq
-        row = {**event, "sequence": seq}
-        self._events.setdefault(run_id, []).append(row)
-        if self._supabase:
-            self._supabase.table("agent_events").insert(row).execute()
-        return row
+        attempts = 3 if self._supabase else 1
+        last_error: Exception | None = None
+
+        for _ in range(attempts):
+            seq = self._next_sequence_from_supabase(run_id) if self._supabase else self._next_local_sequence(run_id)
+            row = {**event, "sequence": seq}
+            try:
+                self._events.setdefault(run_id, []).append(row)
+                if self._supabase:
+                    self._supabase.table("agent_events").insert(row).execute()
+                return row
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                if self._events.get(run_id):
+                    self._events[run_id].pop()
+                # Bei race conditions auf UNIQUE(run_id, sequence) noch einmal versuchen.
+                if "duplicate key value violates unique constraint" not in str(exc):
+                    raise
+        if last_error:
+            raise last_error
+        raise RuntimeError("Konnte Agent-Event nicht persistieren")
 
     async def list_run_events(self, run_id: str) -> list[dict[str, Any]]:
         if run_id in self._events:

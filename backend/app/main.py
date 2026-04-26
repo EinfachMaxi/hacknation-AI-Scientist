@@ -40,6 +40,10 @@ def get_orchestrator(settings: Settings = Depends(get_settings)) -> PlanOrchestr
     return PlanOrchestrator(settings=settings, repository=repository)
 
 
+def _api_error(status_code: int, code: str, message: str) -> HTTPException:
+    return HTTPException(status_code=status_code, detail={"code": code, "message": message})
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -80,12 +84,15 @@ async def start_run(
 async def get_run(run_id: str) -> ExperimentRun:
     run = await repository.get_run(run_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Run not found")
+        raise _api_error(404, "run_not_found", "Run not found")
     return ExperimentRun.model_validate(run)
 
 
 @app.get("/runs/{run_id}/events", response_model=list[AgentEvent])
 async def get_run_events(run_id: str) -> list[AgentEvent]:
+    run = await repository.get_run(run_id)
+    if not run:
+        raise _api_error(404, "run_not_found", "Run not found")
     events = await repository.list_run_events(run_id)
     return [AgentEvent.model_validate(event) for event in events]
 
@@ -94,13 +101,15 @@ async def get_run_events(run_id: str) -> list[AgentEvent]:
 async def get_run_plan(run_id: str) -> ExperimentPlan:
     run = await repository.get_run(run_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Run not found")
+        raise _api_error(404, "run_not_found", "Run not found")
+    if run.get("status") == "failed":
+        raise _api_error(409, "run_failed", run.get("error_message") or "Run failed")
     plan_id = run.get("plan_id")
     if not plan_id:
-        raise HTTPException(status_code=404, detail="Plan not ready")
+        raise _api_error(404, "plan_not_ready", "Plan not ready")
     row = await repository.get_plan(plan_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise _api_error(404, "plan_not_found", "Plan not found")
     return ExperimentPlan.model_validate(row)
 
 
@@ -151,7 +160,7 @@ async def list_plans() -> list[ExperimentSummary]:
 async def get_plan(plan_id: str) -> ExperimentPlan:
     row = await repository.get_plan(plan_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise _api_error(404, "plan_not_found", "Plan not found")
     return ExperimentPlan.model_validate(row)
 
 
