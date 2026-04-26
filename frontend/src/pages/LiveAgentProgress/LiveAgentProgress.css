@@ -15,6 +15,9 @@
 
 .agent-card { background:var(--surface-container-high); border:1px solid var(--outline-variant); border-radius:8px; padding:16px; display:flex; flex-direction:column; box-shadow:none; position:relative; overflow:hidden; min-height:210px; }
 .agent-card--dormant { background:var(--surface-container); border-color:rgba(66,71,84,0.5); opacity:0.6; }
+.agent-card--running { border-color:rgba(93,124,255,0.45); box-shadow:0 0 0 1px rgba(93,124,255,0.2); }
+.agent-card--completed { border-color:rgba(94,164,119,0.45); box-shadow:0 0 0 1px rgba(94,164,119,0.2); }
+.agent-card--failed { border-color:rgba(209,109,123,0.55); box-shadow:0 0 0 1px rgba(209,109,123,0.25); }
 .agent-card__progress-track { position:absolute; top:0; left:0; width:100%; height:2px; background:var(--surface-container-low); }
 .agent-card__progress-fill { height:100%; }
 .agent-card__header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
@@ -37,17 +40,22 @@
 .agent-card__bar { width:6px; height:16px; }
 
 .network-graph { position:relative; height:330px; border-radius:8px; background:linear-gradient(145deg, rgba(36,44,58,0.7), rgba(23,28,39,0.9)); border:1px solid var(--outline-variant); padding:20px; overflow:hidden; }
-.network-graph__lines { position:absolute; inset:0; width:100%; height:100%; }
-.network-graph__line { stroke:rgba(133, 144, 164, 0.35); stroke-width:1.2; stroke-dasharray:4 4; }
+.network-graph__canvas { position:absolute; inset:0; width:100%; height:100%; }
+.network-graph__dust-point { fill:rgba(133, 144, 164, 0.22); }
+.network-graph__line { fill:none; stroke:rgba(133, 144, 164, 0.28); stroke-width:0.45; stroke-dasharray:2.5 2.5; transition:stroke 200ms ease; }
 .network-graph__line--active { stroke:rgba(93, 124, 255, 0.95); animation:networkFlow 2.2s linear infinite; }
-.network-graph__line--soft { stroke:rgba(94, 164, 119, 0.5); }
-.network-graph__node { position:absolute; min-width:112px; border-radius:8px; border:1px solid var(--outline-variant); background:rgba(16, 20, 29, 0.9); padding:10px 12px; display:flex; flex-direction:column; gap:4px; box-shadow:0 0 0 1px rgba(66,71,84,0.4); }
-.network-graph__node span { color:var(--on-surface-variant); font-size:10px; }
-.network-graph__node strong { color:var(--on-surface); font-size:18px; }
-.network-graph__node--literature { top:36px; left:32px; }
-.network-graph__node--protocol { top:36px; left:50%; transform:translateX(-50%); border-color:rgba(93,124,255,0.7); box-shadow:0 0 12px rgba(93,124,255,0.3); }
-.network-graph__node--materials { right:32px; top:86px; border-color:rgba(199,165,111,0.7); }
-.network-graph__node--validation { left:32px; bottom:30px; border-color:rgba(94,164,119,0.6); }
+.network-graph__arrow--idle { fill:rgba(133, 144, 164, 0.55); }
+.network-graph__arrow--active { fill:rgba(93, 124, 255, 0.95); }
+.network-graph__node-ring { fill:transparent; stroke-width:0.75; transition:stroke 200ms ease; }
+.network-graph__node-core { fill:rgba(16, 20, 29, 0.96); stroke:rgba(66,71,84,0.7); stroke-width:0.45; }
+.network-graph__node-label { fill:var(--on-surface-variant); font-size:2.15px; letter-spacing:0.01em; opacity:0.9; }
+.network-graph__node-group--idle .network-graph__node-ring { stroke:rgba(133,144,164,0.55); }
+.network-graph__node-group--running .network-graph__node-ring { stroke:rgba(93,124,255,0.9); }
+.network-graph__node-group--running .network-graph__node-core { filter:drop-shadow(0 0 4px rgba(93,124,255,0.35)); }
+.network-graph__node-group--completed .network-graph__node-ring { stroke:rgba(94,164,119,0.9); }
+.network-graph__node-group--completed .network-graph__node-core { filter:drop-shadow(0 0 4px rgba(94,164,119,0.35)); }
+.network-graph__node-group--failed .network-graph__node-ring { stroke:rgba(209,109,123,0.95); }
+.network-graph__node-group--failed .network-graph__node-core { filter:drop-shadow(0 0 4px rgba(209,109,123,0.35)); }
 
 .network-messages { flex:1; min-height:220px; display:flex; flex-direction:column; gap:8px; }
 .network-messages__title { color:var(--on-surface-variant); }
@@ -75,10 +83,5 @@
   .live-progress__banner { padding:16px; }
   .live-progress__banner-content { flex-direction:column; }
   .network-graph { height:300px; padding:16px; }
-  .network-graph__node { min-width:92px; padding:8px 10px; }
-  .network-graph__node strong { font-size:16px; }
-  .network-graph__node--literature { top:24px; left:18px; }
-  .network-graph__node--protocol { top:24px; }
-  .network-graph__node--materials { right:18px; top:90px; }
-  .network-graph__node--validation { left:18px; bottom:18px; }
+  .network-graph__node-label { font-size:2.4px; }
 }

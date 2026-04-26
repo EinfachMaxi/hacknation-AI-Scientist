@@ -1,5 +1,8 @@
 export type NoveltySignal = 'exact_match' | 'similar_work_exists' | 'not_found'
 export type ReviewSeverity = 'warning' | 'error'
+export type AgentId = 'orchestrator' | 'literature' | 'protocol' | 'materials' | 'budget' | 'timeline' | 'review'
+export type AgentPhase = 'starting' | 'progress' | 'complete' | 'error'
+export type AgentExecutionStatus = 'started' | 'completed' | 'failed'
 
 export interface Reference {
   title: string
@@ -99,9 +102,9 @@ export interface ExperimentPlan {
 }
 
 export interface StreamEvent {
-  agent: string
-  phase: 'starting' | 'progress' | 'complete' | 'error'
-  status: 'started' | 'completed' | 'failed'
+  agent: AgentId
+  phase: AgentPhase
+  status: AgentExecutionStatus
   payload: Record<string, unknown>
   timestamp?: string
 }
@@ -110,13 +113,13 @@ export interface AgentEvent {
   event_id: string
   run_id: string
   sequence: number
-  agent: string
-  phase: 'starting' | 'progress' | 'complete' | 'error'
-  status: 'started' | 'completed' | 'failed'
+  agent: AgentId
+  phase: AgentPhase
+  status: AgentExecutionStatus
   message?: string
   payload: Record<string, unknown>
-  from_agent?: string
-  to_agent?: string
+  from_agent?: AgentId
+  to_agent?: AgentId
   timestamp: string
 }
 
