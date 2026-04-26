@@ -1,4 +1,11 @@
-import type { AgentEvent, ExperimentPlan, ExperimentRun, StreamEvent } from '../types/plan'
+import type {
+  AgentEvent,
+  AgentMessage,
+  ExperimentPlan,
+  ExperimentRun,
+  RunGraphSnapshot,
+  StreamEvent,
+} from '../types/plan'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'
 const PLAN_STORAGE_KEY = 'ai-scientist-plan'
@@ -76,6 +83,22 @@ export async function getRunEvents(runId: string): Promise<AgentEvent[]> {
     throw new Error('Run Events konnten nicht geladen werden')
   }
   return (await response.json()) as AgentEvent[]
+}
+
+export async function getRunGraph(runId: string): Promise<RunGraphSnapshot> {
+  const response = await fetch(`${API_BASE_URL}/runs/${runId}/graph`)
+  if (!response.ok) {
+    throw new Error('Run Graph konnte nicht geladen werden')
+  }
+  return (await response.json()) as RunGraphSnapshot
+}
+
+export async function getRunMessages(runId: string): Promise<AgentMessage[]> {
+  const response = await fetch(`${API_BASE_URL}/runs/${runId}/messages`)
+  if (!response.ok) {
+    throw new Error('Run Messages konnten nicht geladen werden')
+  }
+  return (await response.json()) as AgentMessage[]
 }
 
 export async function getRunPlan(runId: string): Promise<ExperimentPlan> {

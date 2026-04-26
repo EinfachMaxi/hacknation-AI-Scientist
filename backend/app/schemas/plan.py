@@ -169,3 +169,58 @@ class StartRunResponse(BaseModel):
     run_id: str
     status: Literal["pending", "running"]
 
+
+class RunGraphNodeTooling(BaseModel):
+    allowed_tools: list[str] = Field(default_factory=list)
+    tool_calls_count: int = 0
+    last_tool_status: str | None = None
+
+
+class RunGraphNode(BaseModel):
+    id: str
+    label: str
+    role: str
+    personality: str | None = None
+    state: Literal["pending", "ready", "running", "completed", "failed", "skipped"] = "pending"
+    progress_pct: int = 0
+    tooling: RunGraphNodeTooling | None = None
+
+
+class RunGraphEdge(BaseModel):
+    from_: str = Field(serialization_alias="from")
+    to: str
+    state: Literal["idle", "active", "completed", "failed"] = "idle"
+    last_message_type: str | None = None
+    last_activity_at: datetime | None = None
+    last_tool_activity_at: datetime | None = None
+    last_tool_name: str | None = None
+    last_tool_error: str | None = None
+
+
+class RunGraphMeta(BaseModel):
+    run_status: Literal["pending", "running", "completed", "failed"] = "running"
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "v1"
+    tool_calling_enabled: bool = False
+
+
+class RunGraphSnapshot(BaseModel):
+    nodes: list[RunGraphNode] = Field(default_factory=list)
+    edges: list[RunGraphEdge] = Field(default_factory=list)
+    meta: RunGraphMeta
+
+
+class AgentMessage(BaseModel):
+    id: str | None = None
+    run_id: str
+    sequence: int
+    message_type: Literal["request", "response", "handoff", "broadcast", "system"]
+    from_agent_id: str | None = None
+    to_agent_id: str | None = None
+    from_agent: str | None = None
+    to_agent: str | None = None
+    subject: str | None = None
+    message: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+

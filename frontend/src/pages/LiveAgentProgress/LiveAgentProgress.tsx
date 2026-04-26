@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getRun, getRunEvents, getRunPlan } from '../../lib/api'
+import { getRun, getRunEvents, getRunGraph, getRunMessages, getRunPlan } from '../../lib/api'
 import { supabase } from '../../lib/supabase'
-import type { AgentEvent, AgentId } from '../../types/plan'
+import type { AgentEvent, GraphEdge, GraphNode, RunGraphSnapshot } from '../../types/plan'
 import './LiveAgentProgress.css'
 
 interface AgentLog { text: string; type: 'default' | 'primary' | 'secondary' | 'error' }
-interface AgentMessage { id: string; from: string; to: string; text: string; level: 'info' | 'success' | 'warn' }
+interface AgentFeedMessage { id: string; from: string; to: string; text: string; level: 'info' | 'success' | 'warn' }
 type AgentLogType = AgentLog['type']
-type AgentRuntimeState = 'idle' | 'running' | 'completed' | 'failed'
+type AgentRuntimeState = 'idle' | 'pending' | 'ready' | 'running' | 'completed' | 'failed' | 'skipped'
 type AgentColor = 'secondary' | 'primary' | 'tertiary' | 'dormant'
-type EdgeKey = 'literature->budget' | 'literature->timeline' | 'protocol->timeline' | 'materials->budget' | 'budget->review' | 'timeline->review'
-type GraphNodeKey = Exclude<AgentId, 'orchestrator'>
+type GraphNodeKey = string
 
 interface AgentConfig {
-  id: Exclude<AgentId, 'orchestrator'>
+  id: string
   name: string
   icon: string
   baseColor: AgentColor
@@ -29,7 +28,7 @@ interface AgentViewModel extends AgentConfig {
   runtimeState: AgentRuntimeState
 }
 
-const agentsConfig: AgentConfig[] = [
+const defaultAgentsConfig: AgentConfig[] = [
   { id: 'literature', name: 'Literature Scout', icon: 'menu_book', baseColor: 'secondary' },
   { id: 'protocol', name: 'Protocol Designer', icon: 'architecture', baseColor: 'primary' },
   { id: 'materials', name: 'Materials Agent', icon: 'science', baseColor: 'tertiary' },
@@ -40,12 +39,13 @@ const agentsConfig: AgentConfig[] = [
 
 const statusLabels: Record<AgentRuntimeState, string> = {
   idle: 'IDLE',
+  pending: 'PENDING',
+  ready: 'READY',
   running: 'RUNNING',
   completed: 'COMPLETED',
   failed: 'FAILED',
+  skipped: 'SKIPPED',
 }
-
-const graphNodeKeys: GraphNodeKey[] = ['literature', 'protocol', 'materials', 'budget', 'timeline', 'review']
 
 const seededRandom = (seed: number): (() => number) => {
   let value = seed % 2147483647
@@ -61,20 +61,13 @@ const seededRandom = (seed: number): (() => number) => {
 const layoutSeedFromRunId = (value: string): number =>
   value.split('').reduce((acc, char, index) => acc + char.charCodeAt(0) * (index + 17), 811)
 
-const graphEdges: Array<{ key: EdgeKey; from: GraphNodeKey; to: GraphNodeKey }> = [
-  { key: 'literature->budget', from: 'literature', to: 'budget' },
-  { key: 'literature->timeline', from: 'literature', to: 'timeline' },
-  { key: 'protocol->timeline', from: 'protocol', to: 'timeline' },
-  { key: 'materials->budget', from: 'materials', to: 'budget' },
-  { key: 'budget->review', from: 'budget', to: 'review' },
-  { key: 'timeline->review', from: 'timeline', to: 'review' },
-]
-
 export default function LiveAgentProgress() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const [events, setEvents] = useState<AgentEvent[]>([])
+  const [graph, setGraph] = useState<RunGraphSnapshot | null>(null)
+  const [runMessages, setRunMessages] = useState<AgentFeedMessage[]>([])
   const [elapsed, setElapsed] = useState(0)
   const [streamError, setStreamError] = useState<string | null>(null)
   const seenEventIdsRef = useRef<Set<string>>(new Set())
@@ -92,8 +85,7 @@ export default function LiveAgentProgress() {
     []
   )
 
-  const mapEventToAgent = (event: AgentEvent): Exclude<AgentId, 'orchestrator'> =>
-    event.agent === 'orchestrator' ? 'review' : event.agent
+  const mapEventToAgent = (event: AgentEvent): string => (event.agent === 'orchestrator' ? 'review' : event.agent)
 
   const runtimeStateFromEvent = (event: AgentEvent): AgentRuntimeState => {
     if (event.phase === 'error' || event.status === 'failed') {
@@ -116,25 +108,34 @@ export default function LiveAgentProgress() {
   }
 
   const agents = useMemo<AgentViewModel[]>(() => {
+    const graphNodes = graph?.nodes ?? []
+    const dynamicConfig: AgentConfig[] = graphNodes.map((node, index) => {
+      const fallback = defaultAgentsConfig[index % defaultAgentsConfig.length]
+      return {
+        id: node.id,
+        name: node.label,
+        icon: fallback?.icon ?? 'hub',
+        baseColor: fallback?.baseColor ?? 'secondary',
+      }
+    })
+    const configList = dynamicConfig.length ? dynamicConfig : defaultAgentsConfig
     const grouped = new Map<string, AgentEvent[]>()
     events.forEach((event) => {
       const key = mapEventToAgent(event)
       grouped.set(key, [...(grouped.get(key) ?? []), event])
     })
-    return agentsConfig.map((config) => {
+    return configList.map((config) => {
       const agentEvents = grouped.get(config.id) ?? []
       const lastEvent = agentEvents[agentEvents.length - 1]
-      const runtimeState: AgentRuntimeState = lastEvent ? runtimeStateFromEvent(lastEvent) : 'idle'
-      const progress =
-        runtimeState === 'completed'
-          ? 100
-          : runtimeState === 'failed'
-            ? Math.max(15, Math.min(95, agentEvents.length * 20))
-            : runtimeState === 'running'
-              ? Math.max(20, Math.min(90, agentEvents.length * 20))
-              : 0
+      const graphNode = graphNodes.find((node) => node.id === config.id)
+      const runtimeState: AgentRuntimeState = graphNode
+        ? (graphNode.state as AgentRuntimeState)
+        : lastEvent
+          ? runtimeStateFromEvent(lastEvent)
+          : 'idle'
+      const progress = graphNode?.progress_pct ?? (runtimeState === 'completed' ? 100 : runtimeState === 'running' ? 60 : 0)
       const color: AgentColor =
-        runtimeState === 'failed' ? 'tertiary' : runtimeState === 'completed' ? config.baseColor : config.baseColor
+        runtimeState === 'failed' ? 'tertiary' : runtimeState === 'skipped' ? 'dormant' : config.baseColor
       const logs: AgentLog[] = agentEvents
         .slice(-4)
         .reverse()
@@ -152,75 +153,29 @@ export default function LiveAgentProgress() {
         status: statusLabels[runtimeState],
         color,
         logs,
-        active: runtimeState !== 'idle',
+        active: runtimeState !== 'idle' && runtimeState !== 'pending',
         runtimeState,
       }
     })
-  }, [events])
+  }, [events, graph])
 
-  const messages = useMemo<AgentMessage[]>(() => {
-    return events
-      .filter((event) => event.from_agent || event.to_agent || event.message)
-      .slice()
-      .reverse()
-      .slice(0, 8)
-      .map((event) => ({
-        id: event.event_id,
-        from: event.from_agent ?? event.agent,
-        to: event.to_agent ?? 'UI',
-        text: event.message ?? `${event.phase} (${event.status})`,
-        level: event.phase === 'error' ? 'warn' : event.phase === 'complete' ? 'success' : 'info',
-      }))
-  }, [events])
+  const messages = useMemo<AgentFeedMessage[]>(() => runMessages, [runMessages])
 
-  const edgeState = useMemo<Record<EdgeKey, boolean>>(() => {
-    const byAgent = new Map<string, AgentRuntimeState>()
-    agents.forEach((agent) => byAgent.set(agent.id, agent.runtimeState))
-    const linkEvents = events.filter((event) => event.from_agent && event.to_agent)
-    const lastByLink = new Map<string, AgentEvent>()
-    linkEvents.forEach((event) => {
-      lastByLink.set(`${event.from_agent}->${event.to_agent}`, event)
-    })
-    const isLinkActive = (from: string, to: string): boolean => {
-      const link = lastByLink.get(`${from}->${to}`)
-      if (!link) {
-        return false
-      }
-      const fromState = byAgent.get(from) ?? 'idle'
-      const toState = byAgent.get(to) ?? 'idle'
-      const fromLive = fromState === 'running' || fromState === 'completed'
-      const toLive = toState === 'running' || toState === 'completed'
-      return fromLive || toLive
-    }
-    return {
-      'literature->budget': isLinkActive('literature', 'budget'),
-      'literature->timeline': isLinkActive('literature', 'timeline'),
-      'protocol->timeline': isLinkActive('protocol', 'timeline'),
-      'materials->budget': isLinkActive('materials', 'budget'),
-      'budget->review': isLinkActive('budget', 'review'),
-      'timeline->review': isLinkActive('timeline', 'review'),
-    }
-  }, [agents, events])
+  const graphEdges = useMemo(() => graph?.edges ?? [], [graph])
 
   const graphNodes = useMemo(
-    () => ({
-      literature: agents.find((agent) => agent.id === 'literature'),
-      protocol: agents.find((agent) => agent.id === 'protocol'),
-      materials: agents.find((agent) => agent.id === 'materials'),
-      budget: agents.find((agent) => agent.id === 'budget'),
-      timeline: agents.find((agent) => agent.id === 'timeline'),
-      review: agents.find((agent) => agent.id === 'review'),
-    }),
+    () => Object.fromEntries(agents.map((agent) => [agent.id, agent])) as Record<string, AgentViewModel>,
     [agents]
   )
 
   const graphLayout = useMemo<Record<GraphNodeKey, { x: number; y: number; label: string }>>(() => {
     const rand = seededRandom(layoutSeedFromRunId(runId || 'fallback-graph-seed'))
+    const nodeKeys = agents.map((agent) => agent.id)
     const points: Array<{ x: number; y: number }> = []
     const minDist = 14
     const makePoint = (): { x: number; y: number } => ({ x: 10 + rand() * 80, y: 12 + rand() * 76 })
 
-    graphNodeKeys.forEach(() => {
+    nodeKeys.forEach(() => {
       let candidate = makePoint()
       let attempts = 0
       while (
@@ -233,15 +188,24 @@ export default function LiveAgentProgress() {
       points.push(candidate)
     })
 
-    return graphNodeKeys.reduce((acc, nodeKey, index) => {
+    return nodeKeys.reduce((acc, nodeKey, index) => {
       acc[nodeKey] = {
         x: points[index].x,
         y: points[index].y,
-        label: agentsConfig.find((agent) => agent.id === nodeKey)?.name ?? nodeKey,
+        label: agents.find((agent) => agent.id === nodeKey)?.name ?? nodeKey,
       }
       return acc
     }, {} as Record<GraphNodeKey, { x: number; y: number; label: string }>)
-  }, [runId])
+  }, [agents, runId])
+
+  const toolBadgeForNode = (node: GraphNode | undefined): string | null => {
+    if (!node?.tooling) return null
+    if (node.tooling.last_tool_status === 'fallback_mode') return 'fallback_mode'
+    if (node.tooling.last_tool_status === 'error') return 'tool_error'
+    if (node.tooling.last_tool_status === 'extracting') return 'extracting'
+    if (node.tooling.last_tool_status === 'searching') return 'searching'
+    return null
+  }
 
   useEffect(() => { const i = setInterval(() => setElapsed((p) => p + 1), 1000); return () => clearInterval(i) }, [])
   useEffect(() => {
@@ -258,6 +222,21 @@ export default function LiveAgentProgress() {
           nextKnownSeq = Math.max(nextKnownSeq, event.sequence)
           ingestEvent(event)
         })
+      const [latestGraph, latestMessages] = await Promise.all([getRunGraph(runId), getRunMessages(runId)])
+      setGraph(latestGraph)
+      setRunMessages(
+        latestMessages
+          .slice()
+          .reverse()
+          .slice(0, 8)
+          .map((message) => ({
+            id: `${message.run_id}:${message.sequence}`,
+            from: message.from_agent ?? 'system',
+            to: message.to_agent ?? 'UI',
+            text: message.message ?? `${message.message_type}${message.subject ? ` - ${message.subject}` : ''}`,
+            level: message.message_type === 'response' ? 'success' : message.message_type === 'system' ? 'warn' : 'info',
+          }))
+      )
       return nextKnownSeq
     }
     const run = async (): Promise<void> => {
@@ -269,8 +248,26 @@ export default function LiveAgentProgress() {
         seenEventIdsRef.current.clear()
         seenRunSeqRef.current.clear()
 
-        const history = await getRunEvents(runId)
+        const [history, snapshot, initialMessages] = await Promise.all([
+          getRunEvents(runId),
+          getRunGraph(runId),
+          getRunMessages(runId),
+        ])
         history.forEach(ingestEvent)
+        setGraph(snapshot)
+        setRunMessages(
+          initialMessages
+            .slice()
+            .reverse()
+            .slice(0, 8)
+            .map((message) => ({
+              id: `${message.run_id}:${message.sequence}`,
+              from: message.from_agent ?? 'system',
+              to: message.to_agent ?? 'UI',
+              text: message.message ?? `${message.message_type}${message.subject ? ` - ${message.subject}` : ''}`,
+              level: message.message_type === 'response' ? 'success' : message.message_type === 'system' ? 'warn' : 'info',
+            }))
+        )
 
         let knownSeq = history.length ? Math.max(...history.map((e) => e.sequence)) : 0
         const channelName = `run-${runId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -286,6 +283,13 @@ export default function LiveAgentProgress() {
                     knownSeq = event.sequence
                     ingestEvent(event)
                   }
+                }
+              )
+              .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'agent_messages', filter: `run_id=eq.${runId}` },
+                () => {
+                  void syncMissingEvents(knownSeq)
                 }
               )
               .subscribe(async (status) => {
@@ -375,7 +379,10 @@ export default function LiveAgentProgress() {
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>dns</span>
               Agent Runtime
             </div>
-            {agents.map((agent, i) => (
+            {agents.map((agent, i) => {
+              const node = graph?.nodes.find((item) => item.id === agent.id)
+              const toolBadge = toolBadgeForNode(node)
+              return (
               <div
                 key={agent.id}
                 className={`agent-card agent-card--${agent.runtimeState} ${!agent.active ? 'agent-card--dormant' : ''} animate-fadeIn`}
@@ -390,6 +397,11 @@ export default function LiveAgentProgress() {
                   </div>
                   <span className="font-data-mono" style={{ color: colorMap[agent.color], fontSize: 13 }}>{Math.round(agent.progress)}%</span>
                 </div>
+                {toolBadge ? (
+                  <div className="font-label-caps" style={{ color: 'var(--primary)', marginBottom: 6, fontSize: 10 }}>
+                    TOOL: {toolBadge}
+                  </div>
+                ) : null}
                 <div className={`agent-card__terminal ${!agent.active ? 'agent-card__terminal--dormant' : ''}`}>
                   {agent.active ? agent.logs.map((log, j) => (
                     <div key={j} className={`agent-card__log agent-card__log--${log.type}`}>{log.text}</div>
@@ -404,7 +416,7 @@ export default function LiveAgentProgress() {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </aside>
 
           <div className="live-progress__network-column glass-panel animate-fadeIn">
@@ -433,16 +445,17 @@ export default function LiveAgentProgress() {
                     <path d="M0,0 L5,2.5 L0,5 z" className="network-graph__arrow network-graph__arrow--active" />
                   </marker>
                 </defs>
-                {graphEdges.map((edge) => {
+                {graphEdges.map((edge: GraphEdge) => {
                   const from = graphLayout[edge.from]
                   const to = graphLayout[edge.to]
-                  const active = edgeState[edge.key]
+                  if (!from || !to) return null
+                  const active = edge.state === 'active' || edge.state === 'completed'
                   const cx = (from.x + to.x) / 2
                   const cy = (from.y + to.y) / 2
                   const offset = from.y < to.y ? 8 : -8
                   return (
                     <path
-                      key={edge.key}
+                      key={`${edge.from}->${edge.to}`}
                       d={`M ${from.x} ${from.y} Q ${cx} ${cy + offset} ${to.x} ${to.y}`}
                       className={`network-graph__line ${active ? 'network-graph__line--active' : ''}`}
                       markerEnd={`url(#${active ? 'network-arrow-active' : 'network-arrow-idle'})`}

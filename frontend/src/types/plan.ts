@@ -133,3 +133,56 @@ export interface ExperimentRun {
   created_at: string
   updated_at: string
 }
+
+export interface AgentMessage {
+  id?: string
+  run_id: string
+  sequence: number
+  message_type: 'request' | 'response' | 'handoff' | 'broadcast' | 'system'
+  from_agent_id?: string
+  to_agent_id?: string
+  from_agent?: string
+  to_agent?: string
+  subject?: string
+  message?: string
+  payload: Record<string, unknown>
+  created_at: string
+}
+
+export interface GraphNodeTooling {
+  allowed_tools: string[]
+  tool_calls_count: number
+  last_tool_status?: string
+}
+
+export interface GraphNode {
+  id: string
+  label: string
+  role: string
+  personality?: string
+  state: 'pending' | 'ready' | 'running' | 'completed' | 'failed' | 'skipped'
+  progress_pct: number
+  tooling?: GraphNodeTooling
+}
+
+export interface GraphEdge {
+  from: string
+  to: string
+  state: 'idle' | 'active' | 'completed' | 'failed'
+  last_message_type?: string
+  last_activity_at?: string
+  last_tool_activity_at?: string
+  last_tool_name?: string
+  last_tool_error?: string
+}
+
+export interface RunGraphSnapshot {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  meta: {
+    run_status: 'pending' | 'running' | 'completed' | 'failed'
+    updated_at: string
+    version: string
+    tool_calling_enabled: boolean
+  }
+}

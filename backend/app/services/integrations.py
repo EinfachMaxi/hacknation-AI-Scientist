@@ -160,6 +160,17 @@ class SupabaseRepository:
         if self._supabase:
             self._supabase.table("run_agents").upsert(rows, on_conflict="run_id,agent_id").execute()
 
+    async def list_run_agents(self, run_id: str) -> list[dict[str, Any]]:
+        local_rows = list(self._run_agents.get(run_id, {}).values())
+        if self._supabase:
+            result = self._supabase.table("run_agents").select("*").eq("run_id", run_id).execute()
+            rows = result.data or []
+            if rows:
+                for row in rows:
+                    self._run_agents.setdefault(run_id, {})[row["agent_id"]] = row
+                local_rows = rows
+        return local_rows
+
     async def update_run_agent(
         self,
         run_id: str,
@@ -235,10 +246,29 @@ class SupabaseRepository:
             raise last_error
         raise RuntimeError("Konnte Agent-Message nicht persistieren")
 
+    async def list_run_messages(self, run_id: str) -> list[dict[str, Any]]:
+        if run_id in self._messages:
+            return self._messages[run_id]
+        if self._supabase:
+            result = (
+                self._supabase.table("agent_messages")
+                .select("*")
+                .eq("run_id", run_id)
+                .order("sequence", desc=False)
+                .execute()
+            )
+            return result.data or []
+        return []
+
     async def save_plan(self, plan: dict[str, Any]) -> None:
         self._plans[plan["plan_id"]] = plan
         if self._supabase:
-            self._supabase.table("plans").insert(plan).execute()
+            try:
+                self._supabase.table("plans").insert(plan).execute()
+            except Exception:
+                # Dev-Fallback: In manchen Umgebungen ist die plans-Tabelle noch nicht migriert.
+                # Der Run soll dann nicht komplett fehlschlagen, solange der Plan lokal vorliegt.
+                return
 
     async def list_plans(self) -> list[dict[str, Any]]:
         rows = list(self._plans.values())

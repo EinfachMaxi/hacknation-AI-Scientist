@@ -628,6 +628,32 @@ uvicorn app.main:app --reload --port 8000
 
 ---
 
+## ✅ Phase-5 Validation (Dynamic Orchestration)
+
+Ein ausführbarer Smoke-/Integration-Check ist unter `backend/validate_dynamic_orchestration.py` verfügbar.
+
+Er prüft automatisiert:
+
+- parallele Runs (standardmäßig 3)
+- Konsistenz von `GET /runs/{run_id}/graph`
+- Persistenz von `events` und `messages`
+- Reconnect-Idempotenz (keine doppelten Sequenzen, monotone Reihenfolge)
+- mindestens 2 Handoffs pro Run
+- Tool-Capability-Gating anhand `allowed_tools`
+
+Beispiel:
+
+```bash
+python backend/validate_dynamic_orchestration.py --base-url http://localhost:8000 --runs 3
+```
+
+Rückgabecode:
+
+- `0` = alle Checks erfolgreich
+- `1` = mindestens ein Check fehlgeschlagen
+
+---
+
 ## 🔑 Environment Variables
 
 ```env
