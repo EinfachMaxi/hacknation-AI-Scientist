@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any
 
@@ -67,3 +68,126 @@ class MessageBus:
             "created_at": datetime.utcnow().isoformat(),
         }
         return await self._repository.append_agent_message(row)
+
+
+class AgentBus:
+    """Erlaubt Agenten, sich gegenseitig Fragen zu stellen.
+
+    Wenn der Ziel-Agent noch nicht abgeschlossen ist (oder nicht innerhalb des
+    Timeouts antwortet), wird die Anfrage als ``failed`` markiert und der fragende
+    Agent erhaelt ``None`` zurueck. Der Aufrufer entscheidet dann selbst, wie er
+    mit dem fehlenden Input umgeht ("okay egal" und weitermachen).
+    """
+
+    def __init__(
+        self,
+        message_bus: MessageBus,
+        agent_id_by_key: dict[str, str],
+    ) -> None:
+        self._mb = message_bus
+        self._ids = agent_id_by_key
+        self._completed: dict[str, Any] = {}
+        self._lock = asyncio.Lock()
+
+    def mark_completed(self, agent_key: str, output: Any) -> None:
+        self._completed[agent_key] = output
+
+    def is_completed(self, agent_key: str) -> bool:
+        return agent_key in self._completed
+
+    async def ask(
+        self,
+        run_id: str,
+        from_key: str,
+        to_key: str,
+        question: str,
+        *,
+        timeout_seconds: float = 1.2,
+        wait_seconds: float = 0.35,
+    ) -> Any | None:
+        from_id = self._ids.get(from_key)
+        to_id = self._ids.get(to_key)
+
+        await self._mb.publish_message(
+            run_id,
+            message_type="request",
+            from_agent_id=from_id,
+            to_agent_id=to_id,
+            from_agent=from_key,
+            to_agent=to_key,
+            subject=f"{from_key}->{to_key}",
+            message=question,
+            payload={"question": question},
+        )
+        await self._mb.publish_event(
+            run_id,
+            agent=from_key,
+            phase="progress",
+            status="started",
+            from_agent=from_key,
+            to_agent=to_key,
+            message=f"{from_key} fragt {to_key}: {question}",
+            agent_id=from_id,
+        )
+
+        deadline = asyncio.get_event_loop().time() + timeout_seconds
+        while asyncio.get_event_loop().time() < deadline:
+            if self.is_completed(to_key):
+                break
+            await asyncio.sleep(0.15)
+        await asyncio.sleep(wait_seconds)
+
+        if self.is_completed(to_key):
+            answer_payload = self._completed.get(to_key)
+            answer_text = (
+                f"{to_key} antwortet basierend auf seinen Ergebnissen."
+            )
+            await self._mb.publish_message(
+                run_id,
+                message_type="response",
+                from_agent_id=to_id,
+                to_agent_id=from_id,
+                from_agent=to_key,
+                to_agent=from_key,
+                subject=f"answer::{from_key}",
+                message=answer_text,
+                payload={"answer": answer_text},
+            )
+            await self._mb.publish_event(
+                run_id,
+                agent=from_key,
+                phase="progress",
+                status="completed",
+                from_agent=from_key,
+                to_agent=to_key,
+                message=f"{to_key} hat geantwortet.",
+                agent_id=from_id,
+            )
+            return answer_payload
+
+        timeout_text = (
+            f"{to_key} hat nicht rechtzeitig geantwortet "
+            f"({timeout_seconds:.1f}s) - {from_key} arbeitet ohne Input weiter."
+        )
+        await self._mb.publish_event(
+            run_id,
+            agent=from_key,
+            phase="error",
+            status="failed",
+            from_agent=from_key,
+            to_agent=to_key,
+            message=timeout_text,
+            agent_id=from_id,
+        )
+        await self._mb.publish_message(
+            run_id,
+            message_type="system",
+            from_agent_id=from_id,
+            to_agent_id=to_id,
+            from_agent=from_key,
+            to_agent=to_key,
+            subject="timeout",
+            message=timeout_text,
+            payload={"reason": "timeout", "timeout_seconds": timeout_seconds},
+        )
+        return None

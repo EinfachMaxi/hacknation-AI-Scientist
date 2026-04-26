@@ -22,6 +22,17 @@ class AgentDefinition:
 
 DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
     {
+        "key": "planner",
+        "name": "Planner LLM",
+        "role": "Plant Experimente und aktiviert Agenten",
+        "personality": "Strategisch und entscheidungsfreudig",
+        "capabilities": ["planning", "orchestration"],
+        "prompt_template": "Plane den Experiment-Workflow und delegiere Aufgaben.",
+        "is_active": True,
+        "sort_order": 1,
+        "metadata": {"role_kind": "planner"},
+    },
+    {
         "key": "literature",
         "name": "Literature Scout",
         "role": "Check novelty and references",

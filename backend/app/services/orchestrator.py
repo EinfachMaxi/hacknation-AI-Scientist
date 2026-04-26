@@ -9,17 +9,133 @@ from backend.app.config import Settings
 from backend.app.schemas.plan import AgentEvent, ExperimentPlan, ExperimentRun, GeneratePlanRequest
 from backend.app.services.agents import (
     build_title,
-    default_validation,
     run_dynamic_agent,
+    validation_agent,
 )
 from backend.app.services.agent_registry import AgentDefinition, AgentRegistry
 from backend.app.services.execution_plan import ExecutionNode
 from backend.app.services.integrations import SupabaseRepository, TavilyClient
-from backend.app.services.message_bus import MessageBus
+from backend.app.services.message_bus import AgentBus, MessageBus
 from backend.app.services.planner import Planner
 
 AGENT_TIMEOUT_S = 30
 REVIEW_TIMEOUT_S = 20
+PLANNER_AGENT_KEY = "planner"
+SPAWN_DELAY_S = 0.45
+
+# Schwellenwerte fuer die Bedarfs-Heuristik.
+MATERIALS_MIN_ITEMS = 2
+PROTOCOL_LONG_STEPS = 8
+BUDGET_HIGH_TOTAL = 500.0
+REVIEW_MAX_ISSUES_TO_ASK = 2
+
+
+def _assess_agent_needs(
+    agent_key: str,
+    output: Any,
+    state: dict[str, Any],
+) -> list[tuple[str, str]]:
+    """Heuristik: Pruefe Agent-Output auf konkrete Luecken und leite nur dann
+    eine Frage an einen anderen Agent ab.
+
+    Im Mock-Modus mit sauberen Daten liefert das oft eine leere Liste -- der
+    Agent ist eigenstaendig fertig. Im Real-Modus, wenn OpenAI/Tavily Probleme
+    machen oder Outputs schwach sind, treten konkrete Bedarfe auf und es kommt
+    zu echter Inter-Agent-Kommunikation.
+    """
+    needs: list[tuple[str, str]] = []
+
+    if agent_key == "materials":
+        materials = output if isinstance(output, list) else []
+        if len(materials) < MATERIALS_MIN_ITEMS:
+            needs.append(
+                (
+                    "literature",
+                    f"Mein Katalog liefert nur {len(materials)} Eintrag/-e. "
+                    "Welche Standard-Reagenzien werden in der Literatur empfohlen?",
+                )
+            )
+
+    elif agent_key == "protocol":
+        steps: list[Any] = []
+        if isinstance(output, dict):
+            raw_steps = output.get("steps") or []
+            if isinstance(raw_steps, list):
+                steps = raw_steps
+        if len(steps) > PROTOCOL_LONG_STEPS:
+            needs.append(
+                (
+                    "timeline",
+                    f"Mein Protokoll hat {len(steps)} Schritte. Welche koennten "
+                    "parallelisiert werden, um die Timeline zu kuerzen?",
+                )
+            )
+
+    elif agent_key == "budget":
+        total = 0.0
+        if isinstance(output, dict):
+            try:
+                total = float(output.get("total", 0) or 0)
+            except (TypeError, ValueError):
+                total = 0.0
+        if total <= 0:
+            needs.append(
+                (
+                    "materials",
+                    "Ich konnte kein Budget berechnen. Sind alle Materialien "
+                    "mit Preisen gepflegt?",
+                )
+            )
+        elif total > BUDGET_HIGH_TOTAL:
+            needs.append(
+                (
+                    "materials",
+                    f"Mein Budget liegt bei {total:.2f} EUR. Gibt es guenstigere "
+                    "Lieferanten fuer die teuersten Posten?",
+                )
+            )
+
+    elif agent_key == "timeline":
+        phases: list[Any] = []
+        if isinstance(output, dict):
+            raw_phases = output.get("phases") or []
+            if isinstance(raw_phases, list):
+                phases = raw_phases
+        if not phases:
+            needs.append(
+                (
+                    "protocol",
+                    "Ich konnte keine Phasen ableiten. Kannst du mir "
+                    "Schrittdauern als Liste geben?",
+                )
+            )
+
+    elif agent_key == "review":
+        issues = output if isinstance(output, list) else []
+        for issue in issues[:REVIEW_MAX_ISSUES_TO_ASK]:
+            if not isinstance(issue, dict):
+                continue
+            path = str(issue.get("path", ""))
+            severity = str(issue.get("severity", "warning"))
+            target = None
+            if path.startswith("protocol"):
+                target = "protocol"
+            elif path.startswith("materials"):
+                target = "materials"
+            elif path.startswith("budget"):
+                target = "budget"
+            elif path.startswith("timeline"):
+                target = "timeline"
+            if target:
+                needs.append(
+                    (
+                        target,
+                        f"Ich habe ein {severity}-Issue bei '{path}' gefunden. "
+                        "Kannst du das bestaetigen oder einordnen?",
+                    )
+                )
+
+    return needs
 
 
 class PlanOrchestrator:
@@ -96,6 +212,33 @@ class PlanOrchestrator:
                     payload={"tool_trace": trace},
                 )
 
+            agent_bus: AgentBus | None = state.get("agent_bus")
+
+            # Bedarfsorientierte Inter-Agent-Kommunikation:
+            # Der Agent prueft seinen eigenen Output und fragt nur dann einen
+            # Kollegen, wenn ein konkreter Bedarf besteht (z.B. zu wenige
+            # Materialien gefunden, Budget zu hoch, Review-Issue ungeklaert).
+            # Bekommt er Antwort -> Hinweis im Output; bei Timeout macht er
+            # weiter ohne Input.
+            if agent_bus is not None:
+                consultations: list[dict[str, Any]] = []
+                for target_key, question in _assess_agent_needs(agent_key, output, state):
+                    if target_key not in agent_id_by_key:
+                        continue
+                    answer = await agent_bus.ask(run_id, agent_key, target_key, question)
+                    consultations.append(
+                        {
+                            "asked": target_key,
+                            "question": question,
+                            "answered": answer is not None,
+                        }
+                    )
+                if consultations and isinstance(output, dict):
+                    output.setdefault("_consultations", []).extend(consultations)
+
+            if agent_bus is not None:
+                agent_bus.mark_completed(agent_key, output)
+
             await self._repository.update_run_agent(
                 run_id,
                 agent_id,
@@ -110,6 +253,7 @@ class PlanOrchestrator:
                 message=f"{agent_key} abgeschlossen",
                 agent_id=agent_id,
             )
+
             return node.output_key, output
         except Exception as exc:  # noqa: BLE001
             await self._repository.update_run_agent(
@@ -136,14 +280,104 @@ class PlanOrchestrator:
         streaming: bool,
     ) -> ExperimentPlan:
         active_agents = await self._registry.get_active_agents()
-        execution_plan = self._planner.create_execution_plan(request.prompt, active_agents)
         agent_by_key = {agent.key: agent for agent in active_agents}
         agent_id_by_key = {agent.key: str(agent.id) for agent in active_agents if agent.id}
-        run_agent_rows = [
-            {"run_id": run_id, "agent_id": agent_id_by_key[node.agent_key], "status": "pending", "progress_pct": 0}
-            for node in execution_plan.nodes
-        ]
-        await self._repository.create_run_agents(run_agent_rows)
+
+        # 1. Planner-Node sofort als laufend anlegen, damit sie als einzige
+        #    Node am Anfang im UI erscheint.
+        planner_agent_id = agent_id_by_key.get(PLANNER_AGENT_KEY)
+        if planner_agent_id:
+            await self._repository.create_run_agents(
+                [
+                    {
+                        "run_id": run_id,
+                        "agent_id": planner_agent_id,
+                        "status": "running",
+                        "progress_pct": 5,
+                        "started_at": datetime.utcnow().isoformat(),
+                    }
+                ]
+            )
+            await self._message_bus.publish_event(
+                run_id,
+                agent=PLANNER_AGENT_KEY,
+                phase="starting",
+                status="started",
+                message="Planner LLM analysiert Hypothese.",
+                agent_id=planner_agent_id,
+            )
+
+        # 2. Plan generieren (selber Schritt; deterministisch + schnell).
+        execution_plan = self._planner.create_execution_plan(request.prompt, active_agents)
+
+        # 3. Andere Agenten Schritt fuer Schritt spawnen, damit sie im UI
+        #    nacheinander aufploppen und Edges vom Planner sichtbar werden.
+        for index, node in enumerate(execution_plan.nodes, start=1):
+            if node.agent_key == PLANNER_AGENT_KEY:
+                continue
+            agent_id = agent_id_by_key[node.agent_key]
+            await asyncio.sleep(SPAWN_DELAY_S)
+            await self._repository.create_run_agents(
+                [
+                    {
+                        "run_id": run_id,
+                        "agent_id": agent_id,
+                        "status": "ready",
+                        "progress_pct": 0,
+                    }
+                ]
+            )
+            if planner_agent_id:
+                progress = min(95, 20 + index * 12)
+                await self._repository.update_run_agent(
+                    run_id,
+                    planner_agent_id,
+                    {"status": "running", "progress_pct": progress},
+                )
+            await self._message_bus.publish_message(
+                run_id,
+                message_type="handoff",
+                from_agent_id=planner_agent_id,
+                to_agent_id=agent_id,
+                from_agent=PLANNER_AGENT_KEY,
+                to_agent=node.agent_key,
+                subject=f"spawn::{node.agent_key}",
+                message=f"Planner aktiviert {agent_by_key[node.agent_key].name}.",
+                payload={"action": "spawn", "agent": node.agent_key},
+            )
+            await self._message_bus.publish_event(
+                run_id,
+                agent=node.agent_key,
+                phase="starting",
+                status="started",
+                from_agent=PLANNER_AGENT_KEY,
+                to_agent=node.agent_key,
+                message=f"Planner spawnt {node.agent_key}.",
+                agent_id=agent_id,
+            )
+
+        # 4. Planner als abgeschlossen markieren.
+        if planner_agent_id:
+            await self._repository.update_run_agent(
+                run_id,
+                planner_agent_id,
+                {
+                    "status": "completed",
+                    "progress_pct": 100,
+                    "completed_at": datetime.utcnow().isoformat(),
+                },
+            )
+            await self._message_bus.publish_event(
+                run_id,
+                agent=PLANNER_AGENT_KEY,
+                phase="complete",
+                status="completed",
+                message="Planner LLM hat alle Agenten aktiviert.",
+                agent_id=planner_agent_id,
+            )
+
+        # 5. Bus fuer Inter-Agent-Kommunikation aufsetzen.
+        agent_bus = AgentBus(self._message_bus, agent_id_by_key)
 
         state: dict[str, Any] = {
             "prompt": request.prompt,
@@ -155,6 +389,8 @@ class PlanOrchestrator:
             "budget": {},
             "timeline": {},
             "review_issues": [],
+            "agent_bus": agent_bus,
+            "run_id": run_id,
         }
         for level in execution_plan.levels:
             tasks = [self._run_node(run_id, state, node, agent_id_by_key, agent_by_key) for node in level]
@@ -170,6 +406,13 @@ class PlanOrchestrator:
         }
         if streaming:
             meta["streaming"] = True
+        validation = await validation_agent(
+            state["prompt"],
+            state["protocol"] if isinstance(state.get("protocol"), dict) else {},
+            state["materials"] if isinstance(state.get("materials"), list) else [],
+            self._settings,
+            request.use_mock,
+        )
         plan = ExperimentPlan(
             title=build_title(state["prompt"]),
             hypothesis=state["prompt"],
@@ -178,7 +421,7 @@ class PlanOrchestrator:
             materials=state["materials"],
             budget=state["budget"],
             timeline=state["timeline"],
-            validation=default_validation(),
+            validation=validation,
             review_issues=state.get("review_issues", []),
             metadata=meta,
         )

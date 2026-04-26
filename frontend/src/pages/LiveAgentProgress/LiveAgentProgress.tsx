@@ -28,13 +28,20 @@ interface AgentViewModel extends AgentConfig {
   runtimeState: AgentRuntimeState
 }
 
-const defaultAgentsConfig: AgentConfig[] = [
-  { id: 'literature', name: 'Literature Scout', icon: 'menu_book', baseColor: 'secondary' },
-  { id: 'protocol', name: 'Protocol Designer', icon: 'architecture', baseColor: 'primary' },
-  { id: 'materials', name: 'Materials Agent', icon: 'science', baseColor: 'tertiary' },
-  { id: 'budget', name: 'Budget Agent', icon: 'payments', baseColor: 'secondary' },
-  { id: 'timeline', name: 'Timeline Agent', icon: 'calendar_month', baseColor: 'primary' },
-  { id: 'review', name: 'Review Agent', icon: 'fact_check', baseColor: 'dormant' },
+const agentVisualMap: Record<string, { icon: string; baseColor: AgentColor }> = {
+  planner: { icon: 'psychology', baseColor: 'primary' },
+  literature: { icon: 'menu_book', baseColor: 'secondary' },
+  protocol: { icon: 'architecture', baseColor: 'primary' },
+  materials: { icon: 'science', baseColor: 'tertiary' },
+  budget: { icon: 'payments', baseColor: 'secondary' },
+  timeline: { icon: 'calendar_month', baseColor: 'primary' },
+  review: { icon: 'fact_check', baseColor: 'dormant' },
+}
+
+const fallbackVisual = { icon: 'hub', baseColor: 'secondary' as AgentColor }
+
+const plannerOnlyDefault: AgentConfig[] = [
+  { id: 'planner', name: 'Planner LLM', icon: agentVisualMap.planner.icon, baseColor: agentVisualMap.planner.baseColor },
 ]
 
 const statusLabels: Record<AgentRuntimeState, string> = {
@@ -109,16 +116,21 @@ export default function LiveAgentProgress() {
 
   const agents = useMemo<AgentViewModel[]>(() => {
     const graphNodes = graph?.nodes ?? []
-    const dynamicConfig: AgentConfig[] = graphNodes.map((node, index) => {
-      const fallback = defaultAgentsConfig[index % defaultAgentsConfig.length]
+    // Nur Nodes anzeigen, die schon vom Planner gespawnt wurden.
+    // Der Planner selbst ist immer sichtbar.
+    const visibleNodes = graphNodes.filter(
+      (node) => node.id === 'planner' || node.state !== 'pending'
+    )
+    const dynamicConfig: AgentConfig[] = visibleNodes.map((node) => {
+      const visual = agentVisualMap[node.id] ?? fallbackVisual
       return {
         id: node.id,
         name: node.label,
-        icon: fallback?.icon ?? 'hub',
-        baseColor: fallback?.baseColor ?? 'secondary',
+        icon: visual.icon,
+        baseColor: visual.baseColor,
       }
     })
-    const configList = dynamicConfig.length ? dynamicConfig : defaultAgentsConfig
+    const configList = dynamicConfig.length ? dynamicConfig : plannerOnlyDefault
     const grouped = new Map<string, AgentEvent[]>()
     events.forEach((event) => {
       const key = mapEventToAgent(event)
@@ -127,7 +139,7 @@ export default function LiveAgentProgress() {
     return configList.map((config) => {
       const agentEvents = grouped.get(config.id) ?? []
       const lastEvent = agentEvents[agentEvents.length - 1]
-      const graphNode = graphNodes.find((node) => node.id === config.id)
+      const graphNode = visibleNodes.find((node) => node.id === config.id)
       const runtimeState: AgentRuntimeState = graphNode
         ? (graphNode.state as AgentRuntimeState)
         : lastEvent
@@ -444,22 +456,32 @@ export default function LiveAgentProgress() {
                   <marker id="network-arrow-active" markerWidth="5" markerHeight="5" refX="4.5" refY="2.5" orient="auto">
                     <path d="M0,0 L5,2.5 L0,5 z" className="network-graph__arrow network-graph__arrow--active" />
                   </marker>
+                  <marker id="network-arrow-failed" markerWidth="5" markerHeight="5" refX="4.5" refY="2.5" orient="auto">
+                    <path d="M0,0 L5,2.5 L0,5 z" className="network-graph__arrow network-graph__arrow--failed" />
+                  </marker>
                 </defs>
                 {graphEdges.map((edge: GraphEdge) => {
                   const from = graphLayout[edge.from]
                   const to = graphLayout[edge.to]
                   if (!from || !to) return null
-                  const active = edge.state === 'active' || edge.state === 'completed'
+                  const failed = edge.state === 'failed'
+                  const active = !failed && (edge.state === 'active' || edge.state === 'completed')
                   const cx = (from.x + to.x) / 2
                   const cy = (from.y + to.y) / 2
                   const offset = from.y < to.y ? 8 : -8
+                  const variant = failed ? 'failed' : active ? 'active' : 'idle'
                   return (
                     <path
                       key={`${edge.from}->${edge.to}`}
                       d={`M ${from.x} ${from.y} Q ${cx} ${cy + offset} ${to.x} ${to.y}`}
-                      className={`network-graph__line ${active ? 'network-graph__line--active' : ''}`}
-                      markerEnd={`url(#${active ? 'network-arrow-active' : 'network-arrow-idle'})`}
-                    />
+                      className={`network-graph__line network-graph__line--${variant}`}
+                      markerEnd={`url(#network-arrow-${variant})`}
+                    >
+                      <title>
+                        {`${edge.from} -> ${edge.to}: ${edge.state}`}
+                        {edge.last_tool_error ? ` (${edge.last_tool_error})` : ''}
+                      </title>
+                    </path>
                   )
                 })}
                 {(Object.keys(graphLayout) as GraphNodeKey[]).map((nodeKey) => {
@@ -468,7 +490,11 @@ export default function LiveAgentProgress() {
                   const state = agent?.runtimeState ?? 'idle'
                   const progress = Math.round(agent?.progress ?? 0)
                   return (
-                    <g key={nodeKey} className={`network-graph__node-group network-graph__node-group--${state}`} transform={`translate(${cfg.x}, ${cfg.y})`}>
+                    <g
+                      key={nodeKey}
+                      className={`network-graph__node-group network-graph__node-group--${state}`}
+                      transform={`translate(${cfg.x}, ${cfg.y})`}
+                    >
                       <title>{`${cfg.label}: ${statusLabels[state]} (${progress}%)`}</title>
                       <circle className="network-graph__node-ring" r="2.6" />
                       <circle className="network-graph__node-core" r="1.85" />
