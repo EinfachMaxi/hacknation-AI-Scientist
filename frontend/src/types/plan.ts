@@ -1,5 +1,5 @@
 export type NoveltySignal = 'exact_match' | 'similar_work_exists' | 'not_found'
-export type ReviewSeverity = 'warning' | 'error'
+export type ReviewSeverity = 'info' | 'warning' | 'error'
 export type AgentId = 'orchestrator' | 'literature' | 'protocol' | 'materials' | 'budget' | 'timeline' | 'review'
 export type AgentPhase = 'starting' | 'progress' | 'complete' | 'error'
 export type AgentExecutionStatus = 'started' | 'completed' | 'failed'

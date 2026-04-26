@@ -54,26 +54,18 @@ export default function TopAppBar({ sidebarOpen, onToggleSidebar }: TopAppBarPro
         </nav>
       </div>
       <div className="topbar__right">
-        <div className="topbar__search">
-          <span className="material-symbols-outlined topbar__search-icon">search</span>
-          <input className="topbar__search-input font-data-mono" placeholder="Search experiments..." type="text" id="global-search" />
-        </div>
         <button className="topbar__new-btn btn-glow" id="new-experiment-btn" onClick={() => navigate('/')}>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
           New Experiment
         </button>
-        <div className="topbar__actions">
-          <button className="topbar__icon-btn" aria-label="Settings">
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>settings</span>
-          </button>
-          <button className="topbar__icon-btn topbar__icon-btn--notif" aria-label="Notifications">
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>notifications</span>
-            <span className="topbar__notif-dot"></span>
-          </button>
-        </div>
-        <div className="topbar__avatar" id="user-avatar">
-          <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--on-surface-variant)' }}>person</span>
-        </div>
+        <button
+          type="button"
+          className="topbar__icon-btn"
+          aria-label="Open Knowledge Garden"
+          onClick={() => navigate('/knowledge-garden')}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>account_tree</span>
+        </button>
       </div>
     </header>
   )

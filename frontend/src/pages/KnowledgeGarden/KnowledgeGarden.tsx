@@ -4,7 +4,6 @@ import {
   confirmKnowledgeProposal,
   fetchKnowledgeGraph,
   proposeKnowledgeSave,
-  rejectKnowledgeProposal,
 } from '../../lib/api'
 import type {
   KnowledgeChatCitation,
@@ -626,17 +625,14 @@ export default function KnowledgeGarden() {
     }
   }
 
-  const dismissProposal = async (message: ChatMessage): Promise<void> => {
+  const dismissProposal = (message: ChatMessage): void => {
     if (!message.proposed) {
       return
     }
-    try {
-      const proposal = await proposeKnowledgeSave({ nodes: [message.proposed], edges: message.proposedEdges ?? [] })
-      await rejectKnowledgeProposal(proposal.id)
-      setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, saveState: 'rejected' as const } : m)))
-    } catch {
-      // bewusst still — Reject ist best-effort
-    }
+    // Reject ist eine reine UI-Entscheidung -- wir muessen die Proposal NICHT
+    // erst in der DB anlegen, nur um sie sofort zu rejecten. Das vermeidet
+    // unnoetige Muell-Rows in `knowledge_proposals`.
+    setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, saveState: 'rejected' as const } : m)))
   }
 
   return (
@@ -888,7 +884,7 @@ export default function KnowledgeGarden() {
                           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>bookmark_add</span>
                           Save to Graph
                         </button>
-                        <button type="button" className="kg__msg-action" onClick={() => void dismissProposal(message)}>
+                        <button type="button" className="kg__msg-action" onClick={() => dismissProposal(message)}>
                           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete_sweep</span>
                           Verwerfen
                         </button>

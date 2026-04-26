@@ -36,8 +36,8 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--on-surface-variant)' }}>science</span>
           </div>
           <div>
-            <h2 className="sidebar__session-name">Lab Alpha-7</h2>
-            <p className="sidebar__session-time font-data-mono">Active Session: 04:12:00</p>
+            <h2 className="sidebar__session-name">The AI Scientist</h2>
+            <p className="sidebar__session-time font-data-mono">MULTI-AGENT LAB</p>
           </div>
         </div>
       </div>

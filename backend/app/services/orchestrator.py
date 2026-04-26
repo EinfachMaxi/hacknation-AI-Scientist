@@ -21,7 +21,7 @@ from backend.app.services.planner import Planner
 AGENT_TIMEOUT_S = 120
 REVIEW_TIMEOUT_S = 60
 PLANNER_AGENT_KEY = "planner"
-SPAWN_DELAY_S = 0.45
+SPAWN_DELAY_S = 0.15
 
 # Schwellenwerte fuer die Bedarfs-Heuristik.
 MATERIALS_MIN_ITEMS = 2

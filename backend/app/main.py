@@ -526,9 +526,15 @@ async def knowledge_chat(
         contexts=rows,
         use_mock=False,
     )
+    # Heuristik: Nur dann einen `chat_insight`-Save-Vorschlag mitsenden,
+    # wenn die Frage substantiell genug ist und mindestens 2 Citations
+    # hervorgebracht hat. So vermeiden wir Muell-Vorschlaege bei Smalltalk
+    # ("Hi", "ok", "Was ist X?") und reduzieren Knoten-Drift im Graph.
     proposed_node = None
     proposed_edges: list = []
-    if citations:
+    query_text = request.query.strip()
+    looks_substantial = len(query_text) >= 25 and len(query_text.split()) >= 4
+    if looks_substantial and len(citations) >= 2:
         proposed_node, proposed_edges = pkm_service.propose_chat_insight(
             request.query, answer, citations, request.experiment_type
         )

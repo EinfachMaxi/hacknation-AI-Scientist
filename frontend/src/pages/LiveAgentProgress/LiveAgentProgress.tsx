@@ -131,8 +131,7 @@ export default function LiveAgentProgress() {
     [],
   );
 
-  const mapEventToAgent = (event: AgentEvent): string =>
-    event.agent === "orchestrator" ? "review" : event.agent;
+  const mapEventToAgent = (event: AgentEvent): string => event.agent;
 
   const runtimeStateFromEvent = (event: AgentEvent): AgentRuntimeState => {
     if (event.phase === "error" || event.status === "failed") {

@@ -229,13 +229,21 @@ class SupabaseRepository:
             self._supabase.table("experiment_runs").insert(run).execute()
 
     async def update_run(self, run_id: str, patch: dict[str, Any]) -> dict[str, Any] | None:
+        # DB-First: Wenn der Memory-Cache nach einem Worker-Restart leer ist,
+        # darf das den Status-Update gegen Supabase nicht blockieren -- sonst
+        # bleiben Runs faelschlicherweise als "running" stehen.
+        now_iso = datetime.utcnow().isoformat()
         row = self._runs.get(run_id)
-        if not row:
-            return None
+        if row is None:
+            row = {"run_id": run_id}
         row.update(patch)
-        row["updated_at"] = datetime.utcnow().isoformat()
+        row["updated_at"] = now_iso
+        self._runs[run_id] = row
         if self._supabase:
-            self._supabase.table("experiment_runs").update(row).eq("run_id", run_id).execute()
+            update_payload = {**patch, "updated_at": now_iso}
+            self._supabase.table("experiment_runs").update(update_payload).eq(
+                "run_id", run_id
+            ).execute()
         return row
 
     async def get_run(self, run_id: str) -> dict[str, Any] | None:
@@ -296,12 +304,23 @@ class SupabaseRepository:
         patch: dict[str, Any],
     ) -> dict[str, Any] | None:
         bucket = self._run_agents.setdefault(run_id, {})
-        row = bucket.get(agent_id, {"run_id": run_id, "agent_id": agent_id})
+        existing = bucket.get(agent_id)
+        row = existing if existing is not None else {
+            "run_id": run_id,
+            "agent_id": agent_id,
+            "status": "pending",
+            "progress_pct": 0,
+        }
         row.update(patch)
         row["updated_at"] = datetime.utcnow().isoformat()
         bucket[agent_id] = row
         if self._supabase:
-            self._supabase.table("run_agents").update(row).eq("run_id", run_id).eq("agent_id", agent_id).execute()
+            # Upsert: wenn die run_agents-Row noch nicht in der DB existiert
+            # (z.B. weil create_run_agents fehlschlug), muss ein reines
+            # update() nicht stillschweigend daneben gehen.
+            self._supabase.table("run_agents").upsert(
+                row, on_conflict="run_id,agent_id"
+            ).execute()
         return row
 
     async def append_agent_event(self, event: dict[str, Any]) -> dict[str, Any]:
@@ -382,7 +401,13 @@ class SupabaseRepository:
         self._plans[plan["plan_id"]] = plan
         if self._supabase:
             try:
-                self._supabase.table("plans").insert(plan).execute()
+                # Upsert statt Insert: der Accept-Draft-Flow ruft save_plan
+                # ein zweites Mal mit aktualisierten Metadata-Feldern. Mit
+                # plain insert wuerde der Unique-Constraint auf plan_id
+                # greifen und das Metadata-Update verloren gehen.
+                self._supabase.table("plans").upsert(
+                    plan, on_conflict="plan_id"
+                ).execute()
             except Exception:
                 # Dev-Fallback: In manchen Umgebungen ist die plans-Tabelle noch nicht migriert.
                 # Der Run soll dann nicht komplett fehlschlagen, solange der Plan lokal vorliegt.

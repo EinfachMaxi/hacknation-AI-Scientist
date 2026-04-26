@@ -102,7 +102,7 @@ class AgentBus:
         to_key: str,
         question: str,
         *,
-        timeout_seconds: float = 1.2,
+        timeout_seconds: float = 6.0,
         wait_seconds: float = 0.35,
     ) -> Any | None:
         from_id = self._ids.get(from_key)
@@ -169,11 +169,17 @@ class AgentBus:
             f"{to_key} hat nicht rechtzeitig geantwortet "
             f"({timeout_seconds:.1f}s) - {from_key} arbeitet ohne Input weiter."
         )
+        # Wichtig: Wir markieren den fragenden Agent NICHT als failed.
+        # Eine unbeantwortete Anfrage ist kein Fehler des Fragenden, sonst
+        # zeigt das UI faelschlicherweise eine rote Card. Schema erlaubt nur
+        # 'started' | 'completed' | 'failed' -- wir bleiben deshalb auf
+        # phase=progress + status=started, um den Agent weiter als laufend zu
+        # signalisieren.
         await self._mb.publish_event(
             run_id,
             agent=from_key,
-            phase="error",
-            status="failed",
+            phase="progress",
+            status="started",
             from_agent=from_key,
             to_agent=to_key,
             message=timeout_text,
