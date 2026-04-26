@@ -126,7 +126,7 @@ class AgentBus:
             status="started",
             from_agent=from_key,
             to_agent=to_key,
-            message=f"{from_key} fragt {to_key}: {question}",
+            message=f"{from_key} asks {to_key}: {question}",
             agent_id=from_id,
         )
 
@@ -140,7 +140,7 @@ class AgentBus:
         if self.is_completed(to_key):
             answer_payload = self._completed.get(to_key)
             answer_text = (
-                f"{to_key} antwortet basierend auf seinen Ergebnissen."
+                f"{to_key} replies based on its results."
             )
             await self._mb.publish_message(
                 run_id,
@@ -160,14 +160,14 @@ class AgentBus:
                 status="completed",
                 from_agent=from_key,
                 to_agent=to_key,
-                message=f"{to_key} hat geantwortet.",
+                message=f"{to_key} has replied.",
                 agent_id=from_id,
             )
             return answer_payload
 
         timeout_text = (
-            f"{to_key} hat nicht rechtzeitig geantwortet "
-            f"({timeout_seconds:.1f}s) - {from_key} arbeitet ohne Input weiter."
+            f"{to_key} did not reply in time "
+            f"({timeout_seconds:.1f}s) - {from_key} continues without input."
         )
         # Wichtig: Wir markieren den fragenden Agent NICHT als failed.
         # Eine unbeantwortete Anfrage ist kein Fehler des Fragenden, sonst

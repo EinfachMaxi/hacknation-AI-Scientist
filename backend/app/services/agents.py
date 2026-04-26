@@ -26,7 +26,7 @@ async def _openai_json(
     max_attempts: int = 3,
 ) -> dict[str, Any]:
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY fehlt. Bitte in backend/.env setzen.")
+        raise RuntimeError("OPENAI_API_KEY missing. Please set it in backend/.env.")
 
     # OpenAI requires the literal word "json" to appear somewhere in `messages`
     # whenever `response_format={"type": "json_object"}` is used. Callers pass
@@ -202,6 +202,14 @@ def _build_agent_system_prompt(
         f"Role: {agent.role}.",
         f"Personality: {agent.personality or 'Professional and concise'}.",
         f"Core instruction: {agent.prompt_template or agent.role}.",
+        # Inter-agent communication contract: every agent that talks to
+        # the orchestrator, to other agents, or that emits human-readable
+        # text fields (notes, summaries, rationales, warnings) MUST do so
+        # in English. JSON keys are already English; this rule covers the
+        # values too so the multi-agent transcript stays consistent.
+        "Communication language: ALWAYS write all messages, summaries, "
+        "notes, rationales, warnings and any free-text fields in English. "
+        "Inter-agent communication MUST be in English.",
     ]
     if task:
         parts.append(f"Task details: {task}")
@@ -580,7 +588,7 @@ async def budget_agent(
 
     notes = str(
         (result.get("notes") if isinstance(result, dict) else None)
-        or "LLM-basierte Kostenaufteilung anhand der konkreten Materialien."
+        or "LLM-based cost split derived from the concrete materials."
     )
 
     out: dict[str, Any] = {
@@ -741,16 +749,16 @@ async def review_agent(
 ) -> list[ReviewIssue]:
     issues: list[ReviewIssue] = []
     if not protocol.get("steps"):
-        issues.append(ReviewIssue(severity="error", message="Protocol enthält keine Schritte.", path="protocol.steps"))
+        issues.append(ReviewIssue(severity="error", message="Protocol contains no steps.", path="protocol.steps"))
     if not materials:
-        issues.append(ReviewIssue(severity="error", message="Materialliste ist leer.", path="materials"))
+        issues.append(ReviewIssue(severity="error", message="Materials list is empty.", path="materials"))
     if budget.get("total", 0) <= 0:
-        issues.append(ReviewIssue(severity="warning", message="Budget ist 0 oder unbekannt.", path="budget.total"))
+        issues.append(ReviewIssue(severity="warning", message="Budget is 0 or unknown.", path="budget.total"))
     if any(item.get("verification") == "suggested_verify" for item in materials):
         issues.append(
             ReviewIssue(
                 severity="warning",
-                message="Nicht verifizierte Katalogeinträge vorhanden.",
+                message="Unverified catalog entries present.",
                 path="materials[*].verification",
             )
         )
@@ -1141,7 +1149,7 @@ async def _review_tools(
                         ReviewIssue(
                             severity="warning",
                             message=(
-                                "Referenzen koennten Retraction/PubPeer-Einträge haben: "
+                                "References may have retraction/PubPeer entries: "
                                 + "; ".join(r.get("title", "?") for r in results[:2])
                             ),
                             path="literature.references",
@@ -1179,7 +1187,7 @@ async def _review_tools(
                     ReviewIssue(
                         severity="info",
                         message=(
-                            f"Bekannte Pitfalls fuer '{hint}' vorhanden: {top.get('title')}"
+                            f"Known pitfalls for '{hint}': {top.get('title')}"
                         ),
                         path=f"protocol.techniques::{hint}",
                     )
@@ -1612,7 +1620,7 @@ async def run_dynamic_agent(
                 )
                 output = {
                     "novelty_signal": _coerce_novelty_signal(summary.get("novelty_signal")),
-                    "summary": summary.get("summary", "Automatische Tavily-Auswertung der Literatur."),
+                    "summary": summary.get("summary", "Automated Tavily literature review."),
                     "references": summary.get("references", references) or references,
                 }
                 return output, traces
@@ -1628,7 +1636,7 @@ async def run_dynamic_agent(
                     }
                 )
                 output = await literature_scout(prompt, tavily, settings, use_mock, system_prompt=system_prompt)
-                output["summary"] = f"{output.get('summary', '')} (Tool-calling fallback aktiv: {exc!s})".strip()
+                output["summary"] = f"{output.get('summary', '')} (Tool-calling fallback active: {exc!s})".strip()
                 return output, traces
         output = await literature_scout(prompt, tavily, settings, use_mock, system_prompt=system_prompt)
         return output, traces
@@ -1643,13 +1651,13 @@ async def run_dynamic_agent(
         grounded_sp = system_prompt
         if grounding.get("reference_protocols"):
             grounded_sp += (
-                "\n\nGrounding: die folgenden veroeffentlichten Protokolle wurden "
-                "per Tavily abgerufen. Nutze sie als Vorbild, zitiere die URLs bei "
-                "Bedarf und bleibe bei realen Methoden statt zu halluzinieren.\n"
+                "\n\nGrounding: the following published protocols were fetched "
+                "via Tavily. Use them as a template, cite the URLs when relevant, "
+                "and stay with real methods instead of hallucinating.\n"
                 f"{grounding['reference_protocols']}"
             )
         if grounding.get("snippets"):
-            grounded_sp += f"\n\nTextausschnitte (gekuerzt): {grounding['snippets']}"
+            grounded_sp += f"\n\nText excerpts (truncated): {grounding['snippets']}"
         output = await protocol_designer(prompt, settings, use_mock, system_prompt=grounded_sp)
         if (
             tools_on
@@ -1798,7 +1806,7 @@ async def run_dynamic_agent(
         )
         return validation_output, traces
 
-    raise RuntimeError(f"Unbekannter Agent: {agent.key}")
+    raise RuntimeError(f"Unknown agent: {agent.key}")
 
 
 async def validation_agent(

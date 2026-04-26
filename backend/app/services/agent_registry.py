@@ -24,10 +24,10 @@ DEFAULT_AGENT_DEFINITIONS: list[dict[str, Any]] = [
     {
         "key": "planner",
         "name": "Planner LLM",
-        "role": "Plant Experimente und aktiviert Agenten",
-        "personality": "Strategisch und entscheidungsfreudig",
+        "role": "Plan experiments and activate agents",
+        "personality": "Strategic and decisive",
         "capabilities": ["planning", "orchestration"],
-        "prompt_template": "Plane den Experiment-Workflow und delegiere Aufgaben.",
+        "prompt_template": "Plan the experiment workflow and delegate tasks. Always communicate with other agents in English.",
         "is_active": True,
         "sort_order": 1,
         "metadata": {"role_kind": "planner"},

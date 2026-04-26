@@ -52,7 +52,7 @@ class Planner:
     def create_execution_plan(self, prompt: str, active_agents: list[AgentDefinition]) -> ExecutionPlan:
         by_key = {agent.key: agent for agent in active_agents}
         if not by_key:
-            raise RuntimeError("Keine aktiven Agenten in der Registry gefunden")
+            raise RuntimeError("No active agents found in the registry")
 
         prompt_tokens = self._prompt_tokens(prompt)
         intent_capabilities = self._intent_capabilities_from_tokens(prompt_tokens)
@@ -77,7 +77,7 @@ class Planner:
         available_required = [agent_key for agent_key in required_outputs if agent_key in by_key]
         missing = [agent_key for agent_key in required_outputs if agent_key not in by_key]
         if missing:
-            raise RuntimeError(f"Aktive Agenten fehlen in DB: {', '.join(missing)}")
+            raise RuntimeError(f"Active agents missing in DB: {', '.join(missing)}")
 
         dependency_map: dict[str, tuple[str, ...]] = {
             "literature": (),
@@ -239,7 +239,7 @@ class Planner:
             )
             if not ready:
                 cycle = ", ".join(sorted(remaining))
-                raise RuntimeError(f"Zyklische oder unaufloesbare Abhaengigkeiten im Plan: {cycle}")
+                raise RuntimeError(f"Cyclic or unresolvable dependencies in plan: {cycle}")
             level = tuple(ready)
             levels.append(level)
             resolved.update(node.agent_key for node in level)

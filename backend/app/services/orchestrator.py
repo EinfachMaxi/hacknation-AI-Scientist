@@ -69,8 +69,8 @@ def _assess_agent_needs(
             needs.append(
                 (
                     "literature",
-                    f"Mein Katalog liefert nur {len(materials)} Eintrag/-e. "
-                    "Welche Standard-Reagenzien werden in der Literatur empfohlen?",
+                    f"My catalog only returned {len(materials)} item(s). "
+                    "Which standard reagents does the literature recommend?",
                 )
             )
 
@@ -84,8 +84,8 @@ def _assess_agent_needs(
             needs.append(
                 (
                     "timeline",
-                    f"Mein Protokoll hat {len(steps)} Schritte. Welche koennten "
-                    "parallelisiert werden, um die Timeline zu kuerzen?",
+                    f"My protocol has {len(steps)} steps. Which ones could be "
+                    "parallelised to shorten the timeline?",
                 )
             )
 
@@ -100,16 +100,16 @@ def _assess_agent_needs(
             needs.append(
                 (
                     "materials",
-                    "Ich konnte kein Budget berechnen. Sind alle Materialien "
-                    "mit Preisen gepflegt?",
+                    "I could not compute a budget. Are all materials populated "
+                    "with prices?",
                 )
             )
         elif total > BUDGET_HIGH_TOTAL:
             needs.append(
                 (
                     "materials",
-                    f"Mein Budget liegt bei {total:.2f} EUR. Gibt es guenstigere "
-                    "Lieferanten fuer die teuersten Posten?",
+                    f"My budget is at {total:.2f} EUR. Are there cheaper "
+                    "suppliers for the most expensive items?",
                 )
             )
 
@@ -123,8 +123,8 @@ def _assess_agent_needs(
             needs.append(
                 (
                     "protocol",
-                    "Ich konnte keine Phasen ableiten. Kannst du mir "
-                    "Schrittdauern als Liste geben?",
+                    "I could not derive phases. Can you provide step durations "
+                    "as a list?",
                 )
             )
 
@@ -148,8 +148,8 @@ def _assess_agent_needs(
                 needs.append(
                     (
                         target,
-                        f"Ich habe ein {severity}-Issue bei '{path}' gefunden. "
-                        "Kannst du das bestaetigen oder einordnen?",
+                        f"I found a {severity} issue at '{path}'. Can you "
+                        "confirm or contextualise it?",
                     )
                 )
 
@@ -188,7 +188,7 @@ class PlanOrchestrator:
             agent=agent_key,
             phase="progress",
             status="started",
-            message=f"{agent_key} gestartet",
+            message=f"{agent_key} started",
             agent_id=agent_id,
         )
         for upstream in node.depends_on:
@@ -200,7 +200,7 @@ class PlanOrchestrator:
                 from_agent=upstream,
                 to_agent=agent_key,
                 subject=f"{upstream}_to_{agent_key}",
-                message=f"Handoff von {upstream} an {agent_key}",
+                message=f"Handoff from {upstream} to {agent_key}",
                 payload={"from": upstream, "to": agent_key},
             )
 
@@ -226,7 +226,7 @@ class PlanOrchestrator:
                     from_agent=agent_key,
                     to_agent=agent_key,
                     subject=f"tool::{trace.get('tool')}",
-                    message=f"Tool-Call {trace.get('tool')} ({trace.get('status')})",
+                    message=f"Tool call {trace.get('tool')} ({trace.get('status')})",
                     payload={"tool_trace": trace},
                 )
 
@@ -268,7 +268,7 @@ class PlanOrchestrator:
                 phase="progress",
                 status="completed",
                 payload={node.output_key: output},
-                message=f"{agent_key} abgeschlossen",
+                message=f"{agent_key} completed",
                 agent_id=agent_id,
             )
 
@@ -322,7 +322,7 @@ class PlanOrchestrator:
                 agent=PLANNER_AGENT_KEY,
                 phase="starting",
                 status="started",
-                message="Planner LLM analysiert Hypothese.",
+                message="Planner LLM analysing hypothesis.",
                 agent_id=planner_agent_id,
             )
 
@@ -370,7 +370,7 @@ class PlanOrchestrator:
                 from_agent=PLANNER_AGENT_KEY,
                 to_agent=node.agent_key,
                 subject=f"spawn::{node.agent_key}",
-                message=f"Planner aktiviert {agent_by_key[node.agent_key].name}.",
+                message=f"Planner activating {agent_by_key[node.agent_key].name}.",
                 payload=spawn_payload,
             )
             event_payload: dict[str, Any] = {}
@@ -383,7 +383,7 @@ class PlanOrchestrator:
                 status="started",
                 from_agent=PLANNER_AGENT_KEY,
                 to_agent=node.agent_key,
-                message=f"Planner spawnt {node.agent_key}.",
+                message=f"Planner spawning {node.agent_key}.",
                 agent_id=agent_id,
                 payload=event_payload or None,
             )
@@ -404,7 +404,7 @@ class PlanOrchestrator:
                 agent=PLANNER_AGENT_KEY,
                 phase="complete",
                 status="completed",
-                message="Planner LLM hat alle Agenten aktiviert.",
+                message="Planner LLM has activated all agents.",
                 agent_id=planner_agent_id,
             )
 
@@ -530,7 +530,7 @@ class PlanOrchestrator:
             phase="complete",
             status="completed",
             payload={"plan_id": plan.plan_id},
-            message="Run abgeschlossen",
+            message="Run completed",
         )
         return plan
 
@@ -562,7 +562,7 @@ class PlanOrchestrator:
             "agent": "orchestrator",
             "phase": "starting",
             "status": "started",
-            "payload": {"message": "LangGraph-Orchestrator gestartet"},
+            "payload": {"message": "LangGraph orchestrator started"},
             "timestamp": started_at,
         }
         run_id = str(uuid4())
@@ -580,8 +580,8 @@ class PlanOrchestrator:
                 agent="orchestrator",
                 phase="starting",
                 status="started",
-                payload={"message": "Run gestartet"},
-                message="Run gestartet",
+                payload={"message": "Run started"},
+                message="Run started",
             ).model_dump(mode="json")
         )
         try:
