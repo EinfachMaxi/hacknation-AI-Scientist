@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:5173"
     max_plan_size_mb: int = 5
     streaming_timeout_seconds: int = 120
+    agent_tool_calling_enabled: bool = False
+    agent_tool_max_calls: int = 3
+    agent_tool_timeout_seconds: int = 20
+    agent_tool_max_retries: int = 1
+    agent_tool_domain_allowlist: str = "pubmed,nature,science,arxiv,protocols.io,semanticscholar"
 
 
 @lru_cache

@@ -25,9 +25,26 @@ class TavilyClient:
         }
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(f"{self._base_url}/search", json=payload)
-            response.raise_for_status()
+            if response.status_code >= 400:
+                raise RuntimeError(f"Tavily /search failed ({response.status_code}): {response.text[:300]}")
             data = response.json()
         return data.get("results", [])
+
+    async def extract(self, urls: list[str]) -> list[dict[str, Any]]:
+        if not self._settings.tavily_api_key or not urls:
+            return []
+        payload = {
+            "api_key": self._settings.tavily_api_key,
+            "urls": urls,
+            "include_images": False,
+        }
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(f"{self._base_url}/extract", json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(f"Tavily /extract failed ({response.status_code}): {response.text[:300]}")
+            data = response.json()
+        results = data.get("results", [])
+        return results if isinstance(results, list) else []
 
 
 class SupabaseRepository:
@@ -37,8 +54,12 @@ class SupabaseRepository:
         self._runs: dict[str, dict[str, Any]] = {}
         self._events: dict[str, list[dict[str, Any]]] = {}
         self._event_sequence: dict[str, int] = {}
+        self._message_sequence: dict[str, int] = {}
         self._knowledge_nodes: dict[str, dict[str, Any]] = {}
         self._knowledge_edges: list[dict[str, Any]] = []
+        self._agents: dict[str, dict[str, Any]] = {}
+        self._run_agents: dict[str, dict[str, dict[str, Any]]] = {}
+        self._messages: dict[str, list[dict[str, Any]]] = {}
         self._supabase: Client | None = None
         if settings.supabase_url and settings.supabase_service_key:
             self._supabase = create_client(settings.supabase_url, settings.supabase_service_key)
@@ -65,6 +86,25 @@ class SupabaseRepository:
         self._event_sequence[run_id] = max(self._event_sequence.get(run_id, 0), next_sequence)
         return next_sequence
 
+    def _next_message_sequence_from_supabase(self, run_id: str) -> int:
+        if not self._supabase:
+            seq = self._message_sequence.get(run_id, 0) + 1
+            self._message_sequence[run_id] = seq
+            return seq
+        result = (
+            self._supabase.table("agent_messages")
+            .select("sequence")
+            .eq("run_id", run_id)
+            .order("sequence", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data or []
+        current = rows[0]["sequence"] if rows else 0
+        next_sequence = current + 1
+        self._message_sequence[run_id] = max(self._message_sequence.get(run_id, 0), next_sequence)
+        return next_sequence
+
     async def create_run(self, run: dict[str, Any]) -> None:
         self._runs[run["run_id"]] = run
         if self._supabase:
@@ -88,6 +128,52 @@ class SupabaseRepository:
             data = result.data or []
             return data[0] if data else None
         return None
+
+    async def list_agents(self) -> list[dict[str, Any]]:
+        if self._supabase:
+            result = (
+                self._supabase.table("agents")
+                .select("*")
+                .eq("is_active", True)
+                .order("sort_order", desc=False)
+                .execute()
+            )
+            rows = result.data or []
+            for row in rows:
+                self._agents[row["key"]] = row
+            return rows
+        return sorted(self._agents.values(), key=lambda row: int(row.get("sort_order", 100)))
+
+    async def upsert_agents(self, agents: list[dict[str, Any]]) -> None:
+        for row in agents:
+            self._agents[row["key"]] = row
+        if self._supabase and agents:
+            self._supabase.table("agents").upsert(agents, on_conflict="key").execute()
+
+    async def create_run_agents(self, rows: list[dict[str, Any]]) -> None:
+        if not rows:
+            return
+        run_id = rows[0]["run_id"]
+        bucket = self._run_agents.setdefault(run_id, {})
+        for row in rows:
+            bucket[row["agent_id"]] = row
+        if self._supabase:
+            self._supabase.table("run_agents").upsert(rows, on_conflict="run_id,agent_id").execute()
+
+    async def update_run_agent(
+        self,
+        run_id: str,
+        agent_id: str,
+        patch: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        bucket = self._run_agents.setdefault(run_id, {})
+        row = bucket.get(agent_id, {"run_id": run_id, "agent_id": agent_id})
+        row.update(patch)
+        row["updated_at"] = datetime.utcnow().isoformat()
+        bucket[agent_id] = row
+        if self._supabase:
+            self._supabase.table("run_agents").update(row).eq("run_id", run_id).eq("agent_id", agent_id).execute()
+        return row
 
     async def append_agent_event(self, event: dict[str, Any]) -> dict[str, Any]:
         run_id = event["run_id"]
@@ -126,6 +212,28 @@ class SupabaseRepository:
             )
             return result.data or []
         return []
+
+    async def append_agent_message(self, message: dict[str, Any]) -> dict[str, Any]:
+        run_id = message["run_id"]
+        attempts = 3 if self._supabase else 1
+        last_error: Exception | None = None
+        for _ in range(attempts):
+            seq = self._next_message_sequence_from_supabase(run_id)
+            row = {**message, "sequence": seq}
+            try:
+                self._messages.setdefault(run_id, []).append(row)
+                if self._supabase:
+                    self._supabase.table("agent_messages").insert(row).execute()
+                return row
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                if self._messages.get(run_id):
+                    self._messages[run_id].pop()
+                if "duplicate key value violates unique constraint" not in str(exc):
+                    raise
+        if last_error:
+            raise last_error
+        raise RuntimeError("Konnte Agent-Message nicht persistieren")
 
     async def save_plan(self, plan: dict[str, Any]) -> None:
         self._plans[plan["plan_id"]] = plan

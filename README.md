@@ -302,6 +302,7 @@ CREATE TABLE agent_events (
   event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   run_id TEXT NOT NULL REFERENCES experiment_runs(run_id) ON DELETE CASCADE,
   sequence BIGINT NOT NULL,
+  agent_id UUID REFERENCES agents(id) ON DELETE SET NULL,
   agent TEXT NOT NULL,
   phase TEXT NOT NULL,                  -- starting/progress/complete/error
   status TEXT NOT NULL,                 -- started/completed/failed
@@ -315,7 +316,59 @@ CREATE TABLE agent_events (
 CREATE INDEX idx_agent_events_run_seq ON agent_events(run_id, sequence);
 CREATE INDEX idx_agent_events_created ON agent_events(timestamp);
 
--- Enable Realtime on agent_events in Supabase dashboard (Replication tab)
+-- Dynamic agent registry (selected per run by Planner)
+CREATE TABLE agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,                -- stable machine key, e.g. 'literature_scout'
+  name TEXT NOT NULL,                      -- display name
+  role TEXT NOT NULL,                      -- concise responsibility
+  personality TEXT,
+  capabilities TEXT[] DEFAULT '{}',        -- capability tags used by planner
+  prompt_template TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Run-scoped lifecycle for each selected agent
+CREATE TABLE run_agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id TEXT NOT NULL REFERENCES experiment_runs(run_id) ON DELETE CASCADE,
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE RESTRICT,
+  status TEXT NOT NULL,                    -- pending/ready/running/completed/failed/skipped
+  progress_pct INT DEFAULT 0,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  error_message TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (run_id, agent_id)
+);
+
+CREATE INDEX idx_run_agents_run_status ON run_agents(run_id, status);
+
+-- Structured inter-agent communication stream
+CREATE TABLE agent_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id TEXT NOT NULL REFERENCES experiment_runs(run_id) ON DELETE CASCADE,
+  sequence BIGINT NOT NULL,
+  message_type TEXT NOT NULL,              -- request/response/handoff/broadcast/system
+  from_agent_id UUID REFERENCES agents(id) ON DELETE SET NULL,
+  to_agent_id UUID REFERENCES agents(id) ON DELETE SET NULL,
+  from_agent TEXT,
+  to_agent TEXT,
+  subject TEXT,
+  message TEXT,
+  payload JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (run_id, sequence)
+);
+
+CREATE INDEX idx_agent_messages_run_created_at ON agent_messages(run_id, created_at);
+
+-- Enable Realtime on agent_events + run_agents + agent_messages
 
 -- Knowledge Nodes (the "notes")
 CREATE TABLE knowledge_nodes (

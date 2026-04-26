@@ -7,8 +7,10 @@ import httpx
 
 from backend.app.config import Settings
 from backend.app.schemas.plan import ReviewIssue
+from backend.app.services.agent_registry import AgentDefinition
 from backend.app.services.catalog import load_catalog
 from backend.app.services.integrations import TavilyClient
+from backend.app.services.tool_calling import TavilyToolGateway
 
 
 async def _openai_json(settings: Settings, system: str, user: str) -> dict[str, Any]:
@@ -29,14 +31,39 @@ async def _openai_json(settings: Settings, system: str, user: str) -> dict[str, 
     }
     async with httpx.AsyncClient(timeout=45) as client:
         response = await client.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
-        response.raise_for_status()
+        if response.status_code >= 400:
+            raise RuntimeError(f"OpenAI chat/completions failed ({response.status_code}): {response.text[:400]}")
         data = response.json()
     content = data["choices"][0]["message"]["content"]
     import json
     return json.loads(content)
 
 
-async def literature_scout(prompt: str, tavily: TavilyClient, settings: Settings, use_mock: bool) -> dict[str, Any]:
+def _build_agent_system_prompt(agent: AgentDefinition) -> str:
+    metadata = agent.metadata or {}
+    task = metadata.get("task")
+    output_schema = metadata.get("output_schema")
+    parts = [
+        f"You are {agent.name}.",
+        f"Role: {agent.role}.",
+        f"Personality: {agent.personality or 'Professional and concise'}.",
+        f"Core instruction: {agent.prompt_template or agent.role}.",
+    ]
+    if task:
+        parts.append(f"Task details: {task}")
+    if output_schema:
+        parts.append(f"Output schema hint: {output_schema}")
+    return "\n".join(parts)
+
+
+async def literature_scout(
+    prompt: str,
+    tavily: TavilyClient,
+    settings: Settings,
+    use_mock: bool,
+    *,
+    system_prompt: str | None = None,
+) -> dict[str, Any]:
     if use_mock:
         return {
             "novelty_signal": "similar_work_exists",
@@ -53,7 +80,12 @@ async def literature_scout(prompt: str, tavily: TavilyClient, settings: Settings
                 }
             ],
         }
-    results = await tavily.search(prompt)
+    tavily_warning: str | None = None
+    try:
+        results = await tavily.search(prompt)
+    except Exception as exc:  # noqa: BLE001
+        results = []
+        tavily_warning = f"Tavily unavailable: {exc!s}"
     references = [
         {
             "title": item.get("title", "Unknown"),
@@ -62,19 +94,39 @@ async def literature_scout(prompt: str, tavily: TavilyClient, settings: Settings
         }
         for item in results
     ]
-    summary = await _openai_json(
-        settings,
-        "You are a literature scout. Return JSON with novelty_signal, summary, references.",
-        f"Hypothesis: {prompt}\nTavily references: {references}",
-    )
+    try:
+        summary = await _openai_json(
+            settings,
+            system_prompt or "You are a literature scout. Return JSON with novelty_signal, summary, references.",
+            f"Hypothesis: {prompt}\nTavily references: {references}",
+        )
+    except Exception as exc:  # noqa: BLE001
+        fallback_summary = "Literatur-Agent fiel auf Fallback-Antwort zurueck."
+        if tavily_warning:
+            fallback_summary = f"{fallback_summary} {tavily_warning}"
+        return {
+            "novelty_signal": "similar_work_exists",
+            "summary": f"{fallback_summary} OpenAI error: {exc!s}",
+            "references": references,
+        }
+
+    summary_text = summary.get("summary", "Automatische Tavily-Auswertung der Literatur.")
+    if tavily_warning:
+        summary_text = f"{summary_text} ({tavily_warning})"
     return {
         "novelty_signal": summary.get("novelty_signal", "similar_work_exists"),
-        "summary": summary.get("summary", "Automatische Tavily-Auswertung der Literatur."),
+        "summary": summary_text,
         "references": summary.get("references", references) or references,
     }
 
 
-async def protocol_designer(prompt: str, settings: Settings, use_mock: bool) -> dict[str, Any]:
+async def protocol_designer(
+    prompt: str,
+    settings: Settings,
+    use_mock: bool,
+    *,
+    system_prompt: str | None = None,
+) -> dict[str, Any]:
     if use_mock:
         return {
             "steps": [
@@ -100,14 +152,41 @@ async def protocol_designer(prompt: str, settings: Settings, use_mock: bool) -> 
             "total_duration": "1 working day",
             "controls": ["Negative control", "Positive CRP standard", "Matrix control (whole blood)"],
         }
-    return await _openai_json(
-        settings,
-        "You are a protocol designer. Return JSON with keys: steps, total_duration, controls. Max 12 steps.",
-        f"Create protocol for hypothesis: {prompt}",
-    )
+    try:
+        return await _openai_json(
+            settings,
+            system_prompt or "You are a protocol designer. Return JSON with keys: steps, total_duration, controls. Max 12 steps.",
+            f"Create protocol for hypothesis: {prompt}",
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "steps": [
+                {
+                    "step_number": 1,
+                    "action": "Define experiment setup and controls",
+                    "duration": "30 minutes",
+                    "details": f"Fallback generated for prompt: {prompt}",
+                },
+                {
+                    "step_number": 2,
+                    "action": "Execute core assay protocol",
+                    "duration": "90 minutes",
+                    "details": "Run the main measurement workflow and log observations.",
+                },
+            ],
+            "total_duration": "1 working day",
+            "controls": ["Negative control", "Positive control", "Matrix control"],
+            "_warning": f"OpenAI fallback used: {exc!s}",
+        }
 
 
-async def materials_agent(prompt: str, settings: Settings, use_mock: bool) -> dict[str, Any]:
+async def materials_agent(
+    prompt: str,
+    settings: Settings,
+    use_mock: bool,
+    *,
+    system_prompt: str | None = None,
+) -> dict[str, Any]:
     catalog = load_catalog()
     if use_mock and catalog:
         item = catalog[0]
@@ -127,11 +206,32 @@ async def materials_agent(prompt: str, settings: Settings, use_mock: bool) -> di
                 }
             ]
         }
-    return await _openai_json(
-        settings,
-        "You are a materials agent. Return JSON with key materials as list. Include item, catalog_number, supplier, quantity, unit_price, currency, total_price, verification, source_url.",
-        f"Hypothesis: {prompt}\nProduct catalog candidates: {catalog[:15]}",
-    )
+    try:
+        return await _openai_json(
+            settings,
+            system_prompt
+            or "You are a materials agent. Return JSON with key materials as list. Include item, catalog_number, supplier, quantity, unit_price, currency, total_price, verification, source_url.",
+            f"Hypothesis: {prompt}\nProduct catalog candidates: {catalog[:15]}",
+        )
+    except Exception as exc:  # noqa: BLE001
+        fallback_materials = []
+        if catalog:
+            item = catalog[0]
+            fallback_materials.append(
+                {
+                    "item": item["item"],
+                    "catalog_number": item["catalog_number"],
+                    "supplier": item["supplier"],
+                    "quantity": "1 unit",
+                    "unit_price": float(item["unit_price"]),
+                    "currency": item.get("currency", "EUR"),
+                    "total_price": float(item["unit_price"]),
+                    "storage": item.get("storage", "-20C"),
+                    "verification": "verified",
+                    "source_url": item.get("source_url"),
+                }
+            )
+        return {"materials": fallback_materials, "_warning": f"OpenAI fallback used: {exc!s}"}
 
 
 async def budget_agent(materials: list[dict[str, Any]]) -> dict[str, Any]:
@@ -189,6 +289,106 @@ async def review_agent(
             )
         )
     return issues
+
+
+def _tool_calling_allowed(agent: AgentDefinition) -> bool:
+    caps = set(agent.capabilities)
+    allowed_tools = set((agent.metadata or {}).get("allowed_tools", []))
+    return bool({"literature", "references", "research"} & caps) or "tavily.search" in allowed_tools
+
+
+async def run_dynamic_agent(
+    agent: AgentDefinition,
+    *,
+    prompt: str,
+    settings: Settings,
+    use_mock: bool,
+    tavily: TavilyClient,
+    state: dict[str, Any],
+) -> tuple[Any, list[dict[str, Any]]]:
+    system_prompt = _build_agent_system_prompt(agent)
+    traces: list[dict[str, Any]] = []
+
+    if agent.key == "literature":
+        if settings.agent_tool_calling_enabled and _tool_calling_allowed(agent) and not use_mock:
+            metadata = agent.metadata or {}
+            max_calls = min(int(metadata.get("max_tool_calls", settings.agent_tool_max_calls)), settings.agent_tool_max_calls)
+            max_results = int(metadata.get("max_results", 3))
+            allowlist_from_env = tuple(
+                token.strip()
+                for token in settings.agent_tool_domain_allowlist.split(",")
+                if token.strip()
+            )
+            gateway = TavilyToolGateway(
+                tavily,
+                domain_allowlist=allowlist_from_env or ("pubmed", "nature"),
+                timeout_seconds=settings.agent_tool_timeout_seconds,
+                max_retries=settings.agent_tool_max_retries,
+            )
+            try:
+                results, search_trace = await gateway.search(prompt, max_results=max_results)
+                traces.append(search_trace.as_dict())
+                extracts: list[dict[str, Any]] = []
+                if max_calls > 1:
+                    urls = [row.get("url", "") for row in results if row.get("url")]
+                    extracted, extract_trace = await gateway.extract(urls[:2], call_index=2)
+                    extracts = extracted
+                    traces.append(extract_trace.as_dict())
+                references = [
+                    {"title": row.get("title", "Unknown"), "url": row.get("url"), "similarity": "similar_work_exists"}
+                    for row in results
+                ]
+                evidence = {"search_results": results, "extracts": extracts}
+                summary = await _openai_json(
+                    settings,
+                    f"{system_prompt}\nReturn JSON with novelty_signal, summary, references.",
+                    f"Hypothesis: {prompt}\nEvidence: {evidence}",
+                )
+                output = {
+                    "novelty_signal": summary.get("novelty_signal", "similar_work_exists"),
+                    "summary": summary.get("summary", "Automatische Tavily-Auswertung der Literatur."),
+                    "references": summary.get("references", references) or references,
+                }
+                return output, traces
+            except Exception as exc:  # noqa: BLE001
+                error_class = gateway.classify_error(exc)
+                traces.append(
+                    {
+                        "tool": "tavily.search",
+                        "status": "error",
+                        "call_index": 1,
+                        "payload": {"query": prompt, "error_class": error_class},
+                        "error": str(exc),
+                    }
+                )
+                output = await literature_scout(prompt, tavily, settings, use_mock, system_prompt=system_prompt)
+                output["summary"] = f"{output.get('summary', '')} (Tool-calling fallback aktiv: {exc!s})".strip()
+                return output, traces
+        output = await literature_scout(prompt, tavily, settings, use_mock, system_prompt=system_prompt)
+        return output, traces
+
+    if agent.key == "protocol":
+        output = await protocol_designer(prompt, settings, use_mock, system_prompt=system_prompt)
+        return output, traces
+
+    if agent.key == "materials":
+        raw = await materials_agent(prompt, settings, use_mock, system_prompt=system_prompt)
+        output = raw["materials"] if isinstance(raw, dict) else raw
+        return output, traces
+
+    if agent.key == "budget":
+        output = await budget_agent(state["materials"])
+        return output, traces
+
+    if agent.key == "timeline":
+        output = await timeline_agent(state["protocol"].get("steps", []))
+        return output, traces
+
+    if agent.key == "review":
+        issues = await review_agent(state["protocol"], state["materials"], state["budget"])
+        return [issue.model_dump() for issue in issues], traces
+
+    raise RuntimeError(f"Unbekannter Agent: {agent.key}")
 
 
 def default_validation() -> dict[str, Any]:

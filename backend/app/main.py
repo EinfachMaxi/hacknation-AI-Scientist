@@ -5,6 +5,7 @@ import json
 from typing import AsyncGenerator
 from uuid import uuid4
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -20,7 +21,7 @@ from backend.app.schemas.plan import (
     StartRunRequest,
     StartRunResponse,
 )
-from backend.app.services.integrations import SupabaseRepository
+from backend.app.services.integrations import SupabaseRepository, TavilyClient
 from backend.app.services.orchestrator import PlanOrchestrator
 
 app = FastAPI(title="AI Scientist Backend", version="0.1.0")
@@ -47,6 +48,39 @@ def _api_error(status_code: int, code: str, message: str) -> HTTPException:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/health/providers")
+async def health_providers() -> dict:
+    providers: dict[str, dict[str, str | bool]] = {
+        "tavily": {"configured": bool(settings.tavily_api_key), "status": "not_configured"},
+        "openai": {"configured": bool(settings.openai_api_key), "status": "not_configured"},
+    }
+
+    if settings.tavily_api_key:
+        try:
+            tavily = TavilyClient(settings)
+            await tavily.search("healthcheck")
+            providers["tavily"]["status"] = "ok"
+        except Exception as exc:  # noqa: BLE001
+            providers["tavily"]["status"] = "error"
+            providers["tavily"]["message"] = str(exc)[:250]
+
+    if settings.openai_api_key:
+        headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get("https://api.openai.com/v1/models", headers=headers)
+            if response.status_code < 400:
+                providers["openai"]["status"] = "ok"
+            else:
+                providers["openai"]["status"] = "error"
+                providers["openai"]["message"] = response.text[:250]
+        except Exception as exc:  # noqa: BLE001
+            providers["openai"]["status"] = "error"
+            providers["openai"]["message"] = str(exc)[:250]
+
+    return {"providers": providers, "tool_calling_enabled": settings.agent_tool_calling_enabled}
 
 
 @app.post("/runs", response_model=StartRunResponse)
