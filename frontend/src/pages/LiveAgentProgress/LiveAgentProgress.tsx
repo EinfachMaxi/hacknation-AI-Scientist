@@ -245,6 +245,22 @@ export default function LiveAgentProgress() {
     [agents],
   );
 
+  const isInitializing = useMemo(() => {
+    if (streamError) {
+      return false;
+    }
+    const hasEvents = events.length > 0;
+    const hasMessages = runMessages.length > 0;
+    const hasActiveGraphState = (graph?.nodes ?? []).some(
+      (node) =>
+        node.state === "ready" ||
+        node.state === "running" ||
+        node.state === "completed" ||
+        node.state === "failed",
+    );
+    return !hasEvents && !hasMessages && !hasActiveGraphState;
+  }, [events.length, graph, runMessages.length, streamError]);
+
   const graphLayout = useMemo<
     Record<GraphNodeKey, { x: number; y: number; label: string }>
   >(() => {
@@ -553,6 +569,31 @@ export default function LiveAgentProgress() {
             </div>
           </div>
         </section>
+
+        {isInitializing ? (
+          <section
+            className="live-progress__init-box animate-fadeIn"
+            role="status"
+            aria-live="polite"
+            id="agents-initialize-status"
+          >
+            <div className="live-progress__init-row">
+              <span className="material-symbols-outlined live-progress__init-gear">
+                settings
+              </span>
+              <span className="font-label-caps">Initialize...</span>
+            </div>
+            <p className="live-progress__init-copy">
+              Agent runtime wird gestartet und synchronisiert erste Signale.
+            </p>
+            <div
+              className="live-progress__init-progress-track"
+              aria-hidden="true"
+            >
+              <div className="live-progress__init-progress-fill" />
+            </div>
+          </section>
+        ) : null}
 
         <section className="live-progress__workspace" id="agent-grid">
           <aside className="live-progress__agents-column">
