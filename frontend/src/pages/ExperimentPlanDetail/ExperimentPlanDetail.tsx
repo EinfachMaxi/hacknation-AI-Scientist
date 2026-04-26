@@ -110,19 +110,6 @@ export default function ExperimentPlanDetail() {
     : '—'
   const knowledgeNodeCount = currentPlan.knowledge_nodes_extracted?.length ?? 0
   const candidateSummary = (currentPlan.metadata?.candidate_summary as Record<string, number> | undefined) ?? null
-  const generationSeconds = (currentPlan.metadata?.generation_seconds as number | undefined) ?? null
-  const manualMinutes = (currentPlan.metadata?.manual_minutes_estimate as number | undefined) ?? null
-  const formatDuration = (sec: number): string => {
-    if (sec < 60) return `${sec.toFixed(1)}s`
-    const m = Math.floor(sec / 60)
-    const s = Math.round(sec - m * 60)
-    return `${m}m ${s}s`
-  }
-  const formatHours = (mins: number): string => {
-    if (mins < 60) return `${mins} min`
-    const h = mins / 60
-    return h >= 10 ? `${Math.round(h)} h` : `${h.toFixed(1)} h`
-  }
 
   return (
     <div className="ed" id="experiment-plan-detail-page">
@@ -167,47 +154,6 @@ export default function ExperimentPlanDetail() {
             </button>
           </div>
         </header>
-
-        {(generationSeconds !== null || manualMinutes !== null) && (
-          <div className="ed__stats animate-fadeIn" id="plan-stats">
-            {generationSeconds !== null && (
-              <div className="ed__stat">
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--primary)' }}>bolt</span>
-                <div className="ed__stat-text">
-                  <span className="font-label-caps" style={{ color: 'var(--outline)' }}>GENERATED IN</span>
-                  <span className="font-data-mono" style={{ color: 'var(--on-surface)', fontSize: 14 }}>{formatDuration(generationSeconds)}</span>
-                </div>
-              </div>
-            )}
-            {manualMinutes !== null && generationSeconds !== null && (
-              <div className="ed__stat">
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--success, #4ade80)' }}>schedule</span>
-                <div className="ed__stat-text">
-                  <span className="font-label-caps" style={{ color: 'var(--outline)' }}>RESEARCHER TIME SAVED</span>
-                  <span className="font-data-mono" style={{ color: 'var(--on-surface)', fontSize: 14 }}>~{formatHours(manualMinutes)}</span>
-                </div>
-              </div>
-            )}
-            {manualMinutes !== null && generationSeconds !== null && manualMinutes > 0 && generationSeconds > 0 && (
-              <div className="ed__stat">
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--on-surface-variant)' }}>trending_up</span>
-                <div className="ed__stat-text">
-                  <span className="font-label-caps" style={{ color: 'var(--outline)' }}>SPEEDUP</span>
-                  <span className="font-data-mono" style={{ color: 'var(--on-surface)', fontSize: 14 }}>
-                    {Math.round((manualMinutes * 60) / generationSeconds).toLocaleString()}×
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="ed__stat">
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--on-surface-variant)' }}>category</span>
-              <div className="ed__stat-text">
-                <span className="font-label-caps" style={{ color: 'var(--outline)' }}>EXPERIMENT</span>
-                <span className="font-data-mono" style={{ color: 'var(--on-surface)', fontSize: 14, textTransform: 'capitalize' }}>{experimentType}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {(acceptResult || acceptError) && (
           <div
@@ -263,8 +209,6 @@ export default function ExperimentPlanDetail() {
               <div className="ed__tc animate-fadeIn">
                 <div className="ed__toolbar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <span className="font-data-mono" style={{ color: 'var(--on-surface-variant)' }}>EST. TIME: {currentPlan.protocol.total_duration || '—'}</span>
-                    <div style={{ width: 1, height: 16, background: 'var(--outline-variant)' }} />
                     <span className="font-data-mono" style={{ color: 'var(--on-surface-variant)' }}>STEPS: {String(protocolSteps.length).padStart(2, '0')}</span>
                   </div>
                 </div>
@@ -278,10 +222,7 @@ export default function ExperimentPlanDetail() {
                       <div key={s.step_number} className="ps" id={`step-${s.step_number}`}>
                         <div style={{ flexShrink: 0 }}><div className="ps__badge font-data-mono">{String(s.step_number).padStart(2, '0')}</div></div>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <h3 style={{ fontSize: 14, fontWeight: 500, color: 'var(--on-surface)' }}>{s.action}</h3>
-                            <span className="ps__dur font-data-mono">{s.duration}</span>
-                          </div>
+                          <h3 style={{ fontSize: 14, fontWeight: 500, color: 'var(--on-surface)' }}>{s.action}</h3>
                           <p className="font-body-base" style={{ color: 'var(--on-surface-variant)' }}>{s.details}</p>
                           {s.notes && (
                             <div className="ps__warn">
@@ -308,52 +249,6 @@ export default function ExperimentPlanDetail() {
                   </div>
                 ) : (
                   <>
-                    {(() => {
-                      const total = materials.length
-                      const verifiedLocal = materials.filter(m => m.verification === 'verified' && m.verified_via === 'local_catalog').length
-                      const verifiedWeb = materials.filter(m => m.verification === 'verified' && m.verified_via === 'web').length
-                      const verifiedOther = materials.filter(m => m.verification === 'verified' && !m.verified_via).length
-                      const needsVerify = total - verifiedLocal - verifiedWeb - verifiedOther
-                      const totalVerified = verifiedLocal + verifiedWeb + verifiedOther
-                      return (
-                        <div className="mt-vsum">
-                          <div className="mt-vsum__row">
-                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: needsVerify === 0 ? 'var(--success, #4ade80)' : 'var(--warning, #f59e0b)' }}>
-                              {needsVerify === 0 ? 'verified' : 'fact_check'}
-                            </span>
-                            <span className="font-body-base" style={{ color: 'var(--on-surface)' }}>
-                              <strong>{totalVerified}/{total}</strong> reagents cross-checked against supplier catalogs
-                            </span>
-                          </div>
-                          <div className="mt-vsum__chips">
-                            {verifiedLocal > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Exact match in local product catalog">
-                                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>inventory_2</span>
-                                {verifiedLocal} local catalog
-                              </span>
-                            )}
-                            {verifiedWeb > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Verified via Tavily search on supplier domains">
-                                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>language</span>
-                                {verifiedWeb} web verified
-                              </span>
-                            )}
-                            {verifiedOther > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Marked verified by the LLM without an external source">
-                                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>
-                                {verifiedOther} llm asserted
-                              </span>
-                            )}
-                            {needsVerify > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--warn" title="Manual check required before ordering">
-                                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>warning</span>
-                                {needsVerify} verify before order
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })()}
                     <div className="mt" id="materials-table">
                       <div className="mt__h">
                         <span className="font-label-caps" style={{ flex: 2 }}>Material</span>
@@ -365,14 +260,6 @@ export default function ExperimentPlanDetail() {
                       </div>
                       {materials.map((m, i) => {
                         const isVerified = m.verification === 'verified'
-                        const via = m.verified_via
-                        const tooltip = !isVerified
-                          ? 'Not verified – check manually before ordering'
-                          : via === 'local_catalog'
-                            ? `Local product catalog match (score ${(m.match_score ?? 1).toFixed(2)})`
-                            : via === 'web'
-                              ? 'Verified via Tavily search on supplier domain'
-                              : 'Marked verified by the LLM'
                         return (
                           <div key={i} className="mt__r">
                             <span className="font-body-base" style={{ flex: 2, color: 'var(--on-surface)' }}>{m.item}</span>
@@ -380,26 +267,14 @@ export default function ExperimentPlanDetail() {
                             <span className="font-body-base" style={{ flex: 1, color: 'var(--on-surface-variant)' }}>{m.supplier}</span>
                             <span className="font-data-mono" style={{ flex: .5, textAlign: 'right', color: 'var(--on-surface-variant)' }}>{m.quantity}</span>
                             <span className="font-data-mono" style={{ flex: .5, textAlign: 'right', color: 'var(--on-surface)' }}>{formatMoney(m.total_price, m.currency || budgetCurrency)}</span>
-                            <span style={{ flex: .8, textAlign: 'center' }} title={tooltip}>
+                            <span style={{ flex: .8, textAlign: 'center' }}>
                               {!isVerified && (
                                 <span className="mt__u font-label-caps">
                                   <span className="material-symbols-outlined" style={{ fontSize: 12 }}>warning</span>
                                   Verify
                                 </span>
                               )}
-                              {isVerified && via === 'local_catalog' && (
-                                <span className="mt__v mt__v--catalog font-label-caps">
-                                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>inventory_2</span>
-                                  Catalog
-                                </span>
-                              )}
-                              {isVerified && via === 'web' && (
-                                <span className="mt__v mt__v--web font-label-caps">
-                                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>language</span>
-                                  Web
-                                </span>
-                              )}
-                              {isVerified && !via && (
+                              {isVerified && (
                                 <span className="mt__v font-label-caps">
                                   <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>
                                   Verified
