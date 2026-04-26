@@ -1,4 +1,4 @@
-# The AI Scientist
+# Dr. Nexus
 
 **Hackathon:** Fulcrum × Hack-Nation @ World Bank Youth Summit 2026
 **Stack:** Next.js 15 + FastAPI + Tavily + Supabase + Vercel

@@ -37,7 +37,7 @@ export default function TopAppBar({ sidebarOpen, onToggleSidebar }: TopAppBarPro
           </span>
         </button>
         <button type="button" className="topbar__logo" onClick={() => navigate('/')} aria-label="Go to dashboard">
-          The AI Scientist
+          Dr. Nexus
         </button>
         <nav className="topbar__nav">
           {navLinks.map((link) => (

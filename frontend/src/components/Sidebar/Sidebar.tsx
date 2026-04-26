@@ -72,7 +72,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--on-surface-variant)' }}>science</span>
           </div>
           <div>
-            <h2 className="sidebar__session-name">The AI Scientist</h2>
+            <h2 className="sidebar__session-name">Dr. Nexus</h2>
             <p className="sidebar__session-time font-data-mono">MULTI-AGENT LAB</p>
           </div>
         </div>
@@ -92,9 +92,16 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
         ))}
       </nav>
       {plans.length > 0 && (
-        <div className="sidebar__plans" id="sidebar-recent-plans">
-          <div className="sidebar__plans-head">
-            <span className="font-label-caps">RECENT PLANS</span>
+        <div
+          className="sidebar__plans"
+          id="sidebar-recent-plans"
+          aria-label="Recent experiment plans"
+        >
+          <div
+            className="sidebar__plans-head"
+            title="Saved experiment plans from completed agent runs"
+          >
+            <span className="font-label-caps">RECENT EXPERIMENTS</span>
             <span className="font-data-mono sidebar__plans-count">{plans.length}</span>
           </div>
           <div className="sidebar__plans-list">
@@ -104,7 +111,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
                 type="button"
                 className={`sidebar__plan-item ${isPlanActive(plan.plan_id) ? 'sidebar__plan-item--active' : ''}`}
                 onClick={() => navigate(`/experiments/${plan.plan_id}`)}
-                title={plan.hypothesis}
+                title={`${plan.hypothesis}\n\nPlan ID: ${plan.plan_id}`}
               >
                 <span className="material-symbols-outlined sidebar__plan-icon">description</span>
                 <span className="sidebar__plan-text">

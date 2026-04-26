@@ -360,12 +360,12 @@ async def build_chat_answer(
     )[:8000]
 
     system = (
-        "You are the AI Scientist's Knowledge Graph assistant. Answer in German. "
+        "You are Dr. Nexus's Knowledge Graph assistant. Answer in English. "
         "Use ONLY the provided knowledge nodes. Cite each claim with [node_id] in "
         "square brackets. If the context is insufficient, say so explicitly. "
         "Keep answers under 220 words."
     )
-    user = f"Frage: {query}\n\nKontext:\n{context_blob}"
+    user = f"Question: {query}\n\nContext:\n{context_blob}"
 
     headers = {
         "Authorization": f"Bearer {settings.openai_api_key}",

@@ -578,7 +578,7 @@ export default function KnowledgeGarden() {
       const assistant: ChatMessage = {
         id: makeId(),
         role: 'assistant',
-        content: err instanceof Error ? err.message : 'Chat fehlgeschlagen.',
+        content: err instanceof Error ? err.message : 'Chat failed.',
       }
       setMessages((prev) => [...prev, assistant])
     } finally {
@@ -619,7 +619,7 @@ export default function KnowledgeGarden() {
       setPendingSave(null)
       void reloadGraph()
     } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Speichern fehlgeschlagen')
+      showToast('error', err instanceof Error ? err.message : 'Save failed')
     } finally {
       setSaveSubmitting(false)
     }
@@ -643,13 +643,13 @@ export default function KnowledgeGarden() {
         {graphSource === 'loading' && (
           <div className="kg__status kg__status--loading" role="status" aria-live="polite">
             <span className="material-symbols-outlined kg__status-icon" aria-hidden>hourglass_top</span>
-            <span className="font-data-mono">Lade Knowledge Graph…</span>
+            <span className="font-data-mono">Loading Knowledge Graph…</span>
           </div>
         )}
         {graphSource === 'seed' && (
           <div className="kg__status kg__status--seed" role="status">
             <span className="material-symbols-outlined kg__status-icon" aria-hidden>info</span>
-            <span className="font-data-mono">Demo-Graph - akzeptiere einen Draft, um echte Knoten zu sehen.</span>
+            <span className="font-data-mono">Demo graph — accept a draft to see real nodes.</span>
           </div>
         )}
 
@@ -658,7 +658,7 @@ export default function KnowledgeGarden() {
             <button className="kg__btn" title="Reset Layout" onClick={() => { reheat(1); }}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>auto_fix_high</span>
             </button>
-            <button className="kg__btn" title="Daten neu laden" onClick={() => void reloadGraph()}>
+            <button className="kg__btn" title="Reload data" onClick={() => void reloadGraph()}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
             </button>
           </div>
@@ -833,7 +833,7 @@ export default function KnowledgeGarden() {
             <span className="font-label-caps">ASK YOUR LAB</span>
           </div>
           {messages.length > 0 && (
-            <button className="kg__btn" title="Chat leeren" onClick={() => setMessages([])}>
+            <button className="kg__btn" title="Clear chat" onClick={() => setMessages([])}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
             </button>
           )}
@@ -843,7 +843,7 @@ export default function KnowledgeGarden() {
             <div className="kg__chat-empty">
               <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--outline)' }}>auto_awesome</span>
               <p className="font-body-base" style={{ color: 'var(--on-surface-variant)' }}>
-                Frag dein Lab-Wissen. Antworten kommen mit Zitaten und können als Knoten gespeichert werden.
+                Ask your lab. Answers come with citations and can be saved as graph nodes.
               </p>
             </div>
           ) : (
@@ -899,7 +899,7 @@ export default function KnowledgeGarden() {
             <div className="kg__msg kg__msg--assistant">
               <div className="kg__bubble font-body-base" style={{ color: 'var(--on-surface-variant)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: '-2px', marginRight: 6 }}>hourglass_top</span>
-                Suche im Knowledge Graph…
+                Searching the Knowledge Graph…
               </div>
             </div>
           )}
@@ -908,7 +908,7 @@ export default function KnowledgeGarden() {
           <textarea
             className="kg__chat-input"
             value={chatInput}
-            placeholder="Frage dein Wissen…"
+            placeholder="Ask your knowledge…"
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -919,7 +919,7 @@ export default function KnowledgeGarden() {
             rows={1}
             id="knowledge-chat-input"
           />
-          <button type="submit" className="kg__chat-send" disabled={chatLoading || !chatInput.trim()} title="Senden">
+          <button type="submit" className="kg__chat-send" disabled={chatLoading || !chatInput.trim()} title="Send">
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>send</span>
           </button>
         </form>
@@ -933,7 +933,7 @@ export default function KnowledgeGarden() {
                 <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>bookmark_add</span>
                 <h3 className="font-headline-md" style={{ fontSize: 16, fontWeight: 500, color: 'var(--on-surface)' }}>Save Insight to Graph</h3>
               </div>
-              <button className="kg__btn" onClick={closeSaveDialog} title="Schließen">
+              <button className="kg__btn" onClick={closeSaveDialog} title="Close">
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
               </button>
             </div>
@@ -956,7 +956,7 @@ export default function KnowledgeGarden() {
               )}
               {pendingSave.message.citations && pendingSave.message.citations.length > 0 && (
                 <div className="kg__dialog-row">
-                  <label>Quellen ({pendingSave.message.citations.length})</label>
+                  <label>Sources ({pendingSave.message.citations.length})</label>
                   <div className="kg__cites">
                     {pendingSave.message.citations.map((c) => (
                       <span key={c.node_id} className="kg__cite font-data-mono">
@@ -969,10 +969,10 @@ export default function KnowledgeGarden() {
               )}
             </div>
             <div className="kg__dialog-actions">
-              <button className="kg__dialog-btn kg__dialog-btn--ghost font-label-caps" onClick={closeSaveDialog} disabled={saveSubmitting}>Abbrechen</button>
+              <button className="kg__dialog-btn kg__dialog-btn--ghost font-label-caps" onClick={closeSaveDialog} disabled={saveSubmitting}>Cancel</button>
               <button className="kg__dialog-btn kg__dialog-btn--primary font-label-caps" onClick={() => void persistSave()} disabled={saveSubmitting}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{saveSubmitting ? 'hourglass_top' : 'check'}</span>
-                {saveSubmitting ? 'Speichere…' : 'Bestätigen'}
+                {saveSubmitting ? 'Saving…' : 'Confirm'}
               </button>
             </div>
           </div>

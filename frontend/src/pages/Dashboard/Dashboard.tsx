@@ -37,9 +37,7 @@ export default function Dashboard() {
       });
     } catch (error) {
       setStartError(
-        error instanceof Error
-          ? error.message
-          : "Run konnte nicht gestartet werden",
+        error instanceof Error ? error.message : "Could not start run",
       );
       setIsInitializing(false);
     }

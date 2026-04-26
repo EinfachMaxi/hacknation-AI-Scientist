@@ -54,7 +54,7 @@ export default function ExperimentPlanDetail() {
       setAcceptResult(result)
       setGraphStatus('active')
     } catch (err) {
-      setAcceptError(err instanceof Error ? err.message : 'Accept fehlgeschlagen')
+      setAcceptError(err instanceof Error ? err.message : 'Accept failed')
     } finally {
       setAccepting(false)
     }
@@ -72,9 +72,9 @@ export default function ExperimentPlanDetail() {
         <div className="ed__c">
           <div className="ed__empty animate-fadeIn" style={{ padding: 48, textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--outline)' }}>science_off</span>
-            <h2 className="font-headline-md" style={{ marginTop: 16, color: 'var(--on-surface)' }}>Plan nicht verfügbar</h2>
+            <h2 className="font-headline-md" style={{ marginTop: 16, color: 'var(--on-surface)' }}>Plan not available</h2>
             <p className="font-body-base" style={{ color: 'var(--on-surface-variant)', marginTop: 8 }}>
-              Der Plan konnte nicht geladen werden. Starte einen neuen Run, um einen Experiment-Draft zu erzeugen.
+              The plan could not be loaded. Start a new run to generate an experiment draft.
             </p>
             <button
               className="ed__export"
@@ -228,7 +228,7 @@ export default function ExperimentPlanDetail() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span className="font-label-caps" style={{ color: 'var(--primary)' }}>DRAFT INGESTED</span>
                   <span className="font-body-base" style={{ color: 'var(--on-surface)' }}>
-                    <strong>{acceptResult.inserted_nodes}</strong> neue Knoten · <strong>{acceptResult.merged_nodes}</strong> dedupliziert · <strong>{acceptResult.inserted_edges}</strong> Kanten
+                    <strong>{acceptResult.inserted_nodes}</strong> new nodes · <strong>{acceptResult.merged_nodes}</strong> deduplicated · <strong>{acceptResult.inserted_edges}</strong> edges
                   </span>
                 </div>
                 <button
@@ -327,25 +327,25 @@ export default function ExperimentPlanDetail() {
                           </div>
                           <div className="mt-vsum__chips">
                             {verifiedLocal > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Exakter Match in lokalem Product Catalog">
+                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Exact match in local product catalog">
                                 <span className="material-symbols-outlined" style={{ fontSize: 12 }}>inventory_2</span>
                                 {verifiedLocal} local catalog
                               </span>
                             )}
                             {verifiedWeb > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Verifiziert durch Tavily-Suche auf Lieferanten-Domain">
+                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Verified via Tavily search on supplier domains">
                                 <span className="material-symbols-outlined" style={{ fontSize: 12 }}>language</span>
                                 {verifiedWeb} web verified
                               </span>
                             )}
                             {verifiedOther > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Vom LLM als verified markiert ohne weitere Quelle">
+                              <span className="mt-vsum__chip mt-vsum__chip--ok" title="Marked verified by the LLM without an external source">
                                 <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>
                                 {verifiedOther} llm asserted
                               </span>
                             )}
                             {needsVerify > 0 && (
-                              <span className="mt-vsum__chip mt-vsum__chip--warn" title="Vor der Bestellung manuell pruefen">
+                              <span className="mt-vsum__chip mt-vsum__chip--warn" title="Manual check required before ordering">
                                 <span className="material-symbols-outlined" style={{ fontSize: 12 }}>warning</span>
                                 {needsVerify} verify before order
                               </span>
@@ -367,12 +367,12 @@ export default function ExperimentPlanDetail() {
                         const isVerified = m.verification === 'verified'
                         const via = m.verified_via
                         const tooltip = !isVerified
-                          ? 'Nicht verifiziert – vor der Bestellung manuell pruefen'
+                          ? 'Not verified – check manually before ordering'
                           : via === 'local_catalog'
-                            ? `Match im lokalen Product Catalog (Score ${(m.match_score ?? 1).toFixed(2)})`
+                            ? `Local product catalog match (score ${(m.match_score ?? 1).toFixed(2)})`
                             : via === 'web'
-                              ? 'Verifiziert via Tavily-Suche auf Lieferanten-Domain'
-                              : 'Vom LLM als verified gekennzeichnet'
+                              ? 'Verified via Tavily search on supplier domain'
+                              : 'Marked verified by the LLM'
                         return (
                           <div key={i} className="mt__r">
                             <span className="font-body-base" style={{ flex: 2, color: 'var(--on-surface)' }}>{m.item}</span>
@@ -588,7 +588,7 @@ export default function ExperimentPlanDetail() {
                   </span>
                 </div>
                 <p className="font-body-base" style={{ color: 'var(--on-surface)' }}>
-                  {currentPlan.literature_qc.summary || 'Keine Literatur-Zusammenfassung verfügbar.'}
+                  {currentPlan.literature_qc.summary || 'No literature summary available.'}
                 </p>
               </div>
             </div>

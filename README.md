@@ -1,4 +1,4 @@
-# 🧬 The AI Scientist
+# 🧬 Dr. Nexus
 
 > **Compress weeks of experiment planning into minutes.**
 
@@ -48,7 +48,7 @@ The quality bar is simple:
 
 ## 🧠 Why Not Just Use ChatGPT?
 
-| | ChatGPT / DeepSeek | **The AI Scientist** |
+| | ChatGPT / DeepSeek | **Dr. Nexus** |
 |---|---|---|
 | **Output** | Text report | Executable plan with structured components |
 | **Architecture** | Single monolithic response | Multi-agent with live visible specialists |
@@ -462,7 +462,7 @@ node = {
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  🤖 The AI Scientist                          [Settings] [⚡] │
+│  🤖 Dr. Nexus                                 [Settings] [⚡] │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │

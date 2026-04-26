@@ -65,9 +65,9 @@ export default function Agents() {
                 Available Agents
               </h1>
               <p className="agents-page__subtitle">
-                Diese Agenten stehen im Multi-Agent-Network für deine Scientific Workflows
-                bereit. Liste kommt live aus der Backend-Registry (Supabase
-                <code> agents </code>-Tabelle).
+                These agents power Dr. Nexus's multi-agent workflows. The list is
+                served live from the backend registry (Supabase
+                <code> agents </code> table).
               </p>
             </div>
             <button
@@ -75,7 +75,7 @@ export default function Agents() {
               className="agents-page__refresh"
               onClick={() => void loadAgents()}
               disabled={loading}
-              aria-label="Agentenliste neu laden"
+              aria-label="Refresh agent list"
             >
               <span
                 className="material-symbols-outlined"
@@ -103,7 +103,7 @@ export default function Agents() {
               <span className="material-symbols-outlined" style={{ fontSize: 32 }}>
                 hourglass_top
               </span>
-              <p className="font-body-base">Lade Agent-Registry…</p>
+              <p className="font-body-base">Loading agent registry…</p>
             </div>
           )}
 
@@ -115,7 +115,7 @@ export default function Agents() {
               >
                 inbox
               </span>
-              <p className="font-body-base">Keine aktiven Agenten registriert.</p>
+              <p className="font-body-base">No active agents registered.</p>
             </div>
           )}
 

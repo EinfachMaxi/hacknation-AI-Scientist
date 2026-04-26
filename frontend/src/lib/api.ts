@@ -77,7 +77,7 @@ export async function generatePlan(request: GeneratePlanRequest): Promise<Experi
     body: JSON.stringify(request),
   })
   if (!response.ok) {
-    throw new Error('Plan-Generierung fehlgeschlagen')
+    throw new Error('Plan generation failed')
   }
   const plan = (await response.json()) as ExperimentPlan
   savePlan(plan)
@@ -91,7 +91,7 @@ export async function startRun(request: StartRunRequest): Promise<StartRunRespon
     body: JSON.stringify(request),
   })
   if (!response.ok) {
-    throw new Error('Run konnte nicht gestartet werden')
+    throw new Error('Could not start run')
   }
   return (await response.json()) as StartRunResponse
 }
@@ -99,7 +99,7 @@ export async function startRun(request: StartRunRequest): Promise<StartRunRespon
 export async function listRecentPlans(): Promise<ExperimentSummary[]> {
   const response = await fetch(`${API_BASE_URL}/plans`)
   if (!response.ok) {
-    throw new Error('Plans konnten nicht geladen werden')
+    throw new Error('Could not load plans')
   }
   return (await response.json()) as ExperimentSummary[]
 }
@@ -107,7 +107,7 @@ export async function listRecentPlans(): Promise<ExperimentSummary[]> {
 export async function fetchBackendAgents(): Promise<BackendAgent[]> {
   const response = await fetch(`${API_BASE_URL}/agents`)
   if (!response.ok) {
-    throw new Error('Agents konnten nicht geladen werden')
+    throw new Error('Could not load agents')
   }
   const data = (await response.json()) as { agents: BackendAgent[] }
   return data.agents ?? []
@@ -116,7 +116,7 @@ export async function fetchBackendAgents(): Promise<BackendAgent[]> {
 export async function getRun(runId: string): Promise<ExperimentRun> {
   const response = await fetch(`${API_BASE_URL}/runs/${runId}`)
   if (!response.ok) {
-    throw new Error('Run Status konnte nicht geladen werden')
+    throw new Error('Could not load run status')
   }
   return (await response.json()) as ExperimentRun
 }
@@ -124,7 +124,7 @@ export async function getRun(runId: string): Promise<ExperimentRun> {
 export async function getRunEvents(runId: string): Promise<AgentEvent[]> {
   const response = await fetch(`${API_BASE_URL}/runs/${runId}/events`)
   if (!response.ok) {
-    throw new Error('Run Events konnten nicht geladen werden')
+    throw new Error('Could not load run events')
   }
   return (await response.json()) as AgentEvent[]
 }
@@ -132,7 +132,7 @@ export async function getRunEvents(runId: string): Promise<AgentEvent[]> {
 export async function getRunGraph(runId: string): Promise<RunGraphSnapshot> {
   const response = await fetch(`${API_BASE_URL}/runs/${runId}/graph`)
   if (!response.ok) {
-    throw new Error('Run Graph konnte nicht geladen werden')
+    throw new Error('Could not load run graph')
   }
   return (await response.json()) as RunGraphSnapshot
 }
@@ -140,7 +140,7 @@ export async function getRunGraph(runId: string): Promise<RunGraphSnapshot> {
 export async function getRunMessages(runId: string): Promise<AgentMessage[]> {
   const response = await fetch(`${API_BASE_URL}/runs/${runId}/messages`)
   if (!response.ok) {
-    throw new Error('Run Messages konnten nicht geladen werden')
+    throw new Error('Could not load run messages')
   }
   return (await response.json()) as AgentMessage[]
 }
@@ -148,7 +148,7 @@ export async function getRunMessages(runId: string): Promise<AgentMessage[]> {
 export async function getRunPlan(runId: string): Promise<ExperimentPlan> {
   const response = await fetch(`${API_BASE_URL}/runs/${runId}/plan`)
   if (!response.ok) {
-    throw new Error('Plan fuer Run nicht verfuegbar')
+    throw new Error('Plan for run is not available')
   }
   const plan = (await response.json()) as ExperimentPlan
   savePlan(plan)
@@ -167,7 +167,7 @@ export async function streamGeneratePlan(
     signal,
   })
   if (!response.ok || !response.body) {
-    throw new Error('SSE-Stream konnte nicht gestartet werden')
+    throw new Error('Could not start SSE stream')
   }
 
   const reader = response.body.getReader()
@@ -213,7 +213,7 @@ export async function acceptPlanDraft(planId: string): Promise<AcceptDraftRespon
     headers: { 'Content-Type': 'application/json' },
   })
   if (!response.ok) {
-    throw new Error('Draft konnte nicht akzeptiert werden')
+    throw new Error('Could not accept draft')
   }
   return (await response.json()) as AcceptDraftResponse
 }
@@ -239,7 +239,7 @@ export async function fetchKnowledgeGraph(
     `${API_BASE_URL}/knowledge${query ? `?${query}` : ''}`,
   )
   if (!response.ok) {
-    throw new Error('Knowledge Graph konnte nicht geladen werden')
+    throw new Error('Could not load knowledge graph')
   }
   return (await response.json()) as KnowledgeListResponse
 }
@@ -259,7 +259,7 @@ export async function askKnowledgeChat(
     body: JSON.stringify(request),
   })
   if (!response.ok) {
-    throw new Error('Knowledge Chat fehlgeschlagen')
+    throw new Error('Knowledge chat failed')
   }
   return (await response.json()) as KnowledgeChatResponse
 }
@@ -279,7 +279,7 @@ export async function proposeKnowledgeSave(
     }),
   })
   if (!response.ok) {
-    throw new Error('Proposal konnte nicht erstellt werden')
+    throw new Error('Could not create proposal')
   }
   return (await response.json()) as KnowledgeProposal
 }
@@ -292,7 +292,7 @@ export async function confirmKnowledgeProposal(
     { method: 'POST' },
   )
   if (!response.ok) {
-    throw new Error('Proposal-Confirm fehlgeschlagen')
+    throw new Error('Could not confirm proposal')
   }
   return (await response.json()) as AcceptDraftResponse
 }
@@ -305,7 +305,7 @@ export async function rejectKnowledgeProposal(
     { method: 'POST' },
   )
   if (!response.ok) {
-    throw new Error('Proposal-Reject fehlgeschlagen')
+    throw new Error('Could not reject proposal')
   }
   return (await response.json()) as { status: string; id: string }
 }

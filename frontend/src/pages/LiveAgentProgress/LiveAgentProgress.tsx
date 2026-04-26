@@ -117,7 +117,7 @@ export default function LiveAgentProgress() {
   const seenRunSeqRef = useRef<Set<string>>(new Set());
   const hypothesis =
     (location.state as { hypothesis?: string } | null)?.hypothesis ??
-    "Noch kein Hypothesis-Text uebergeben.";
+    "No hypothesis text provided yet.";
   const runId =
     (location.state as { runId?: string } | null)?.runId ?? id ?? "";
 
@@ -364,7 +364,7 @@ export default function LiveAgentProgress() {
     const run = async (): Promise<void> => {
       try {
         if (!runId) {
-          throw new Error("run_id fehlt. Bitte Run neu starten.");
+          throw new Error("run_id missing. Please restart the run.");
         }
         setActiveRunId(runId);
         setEvents([]);
@@ -459,7 +459,7 @@ export default function LiveAgentProgress() {
             // Keep polling instead of failing the whole page on transient 404.
             if (
               error instanceof Error &&
-              error.message.includes("Run Status konnte nicht geladen werden")
+              error.message.includes("Could not load run status")
             ) {
               return;
             }
@@ -473,7 +473,7 @@ export default function LiveAgentProgress() {
             }
           } else if (status.status === "failed") {
             setActiveRunId(null);
-            setStreamError(status.error_message ?? "Run fehlgeschlagen");
+            setStreamError(status.error_message ?? "Run failed");
           }
         }, 1500);
       } catch (error) {
@@ -583,7 +583,7 @@ export default function LiveAgentProgress() {
               <span className="font-label-caps">Initialize...</span>
             </div>
             <p className="live-progress__init-copy">
-              Agent runtime wird gestartet und synchronisiert erste Signale.
+              Booting the agent runtime and syncing the first signals.
             </p>
             <div
               className="live-progress__init-progress-track"
@@ -724,8 +724,8 @@ export default function LiveAgentProgress() {
                 <span
                   className="material-symbols-outlined live-progress__network-gear"
                   role="status"
-                  aria-label="Aktivität: Agent-Netz läuft"
-                  title="Agent-Netz aktiv"
+                  aria-label="Activity: agent network running"
+                  title="Agent network active"
                 >
                   settings
                 </span>

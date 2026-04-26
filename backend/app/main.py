@@ -42,7 +42,7 @@ from backend.app.services.integrations import SupabaseRepository, TavilyClient
 from backend.app.services.orchestrator import PlanOrchestrator
 from backend.app.services import pkm as pkm_service
 
-app = FastAPI(title="AI Scientist Backend", version="0.1.0")
+app = FastAPI(title="Dr. Nexus Backend", version="0.1.0")
 settings = get_settings()
 repository = SupabaseRepository(settings)
 origins = [origin.strip() for origin in settings.allowed_origins.split(",") if origin.strip()]
