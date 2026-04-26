@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { listRecentPlans } from '../../lib/api'
+import type { ExperimentSummary } from '../../types/plan'
 import './Sidebar.css'
 
 interface NavItem { icon: string; label: string; path: string; }
@@ -10,9 +13,38 @@ const mainNav: NavItem[] = [
   { icon: 'schema', label: 'Knowledge Graph', path: '/knowledge-garden' },
 ]
 
+const formatRelative = (iso: string): string => {
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return ''
+  const diff = Date.now() - t
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
+}
+
 export default function Sidebar({ isOpen }: { isOpen: boolean }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const [plans, setPlans] = useState<ExperimentSummary[]>([])
+
+  const refreshPlans = async (): Promise<void> => {
+    try {
+      const list = await listRecentPlans()
+      setPlans(list.slice(0, 5))
+    } catch {
+      setPlans([])
+    }
+  }
+
+  useEffect(() => {
+    void refreshPlans()
+    const t = setInterval(() => void refreshPlans(), 15000)
+    return () => clearInterval(t)
+  }, [location.pathname])
 
   const isActive = (path: string) => {
     const pathname = location.pathname
@@ -26,6 +58,10 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
       return pathname === '/agent-network' || pathname.endsWith('/progress')
     }
     return pathname === path
+  }
+
+  const isPlanActive = (planId: string): boolean => {
+    return location.pathname === `/experiments/${planId}`
   }
 
   return (
@@ -55,6 +91,31 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
           </button>
         ))}
       </nav>
+      {plans.length > 0 && (
+        <div className="sidebar__plans" id="sidebar-recent-plans">
+          <div className="sidebar__plans-head">
+            <span className="font-label-caps">RECENT PLANS</span>
+            <span className="font-data-mono sidebar__plans-count">{plans.length}</span>
+          </div>
+          <div className="sidebar__plans-list">
+            {plans.map((plan) => (
+              <button
+                key={plan.plan_id}
+                type="button"
+                className={`sidebar__plan-item ${isPlanActive(plan.plan_id) ? 'sidebar__plan-item--active' : ''}`}
+                onClick={() => navigate(`/experiments/${plan.plan_id}`)}
+                title={plan.hypothesis}
+              >
+                <span className="material-symbols-outlined sidebar__plan-icon">description</span>
+                <span className="sidebar__plan-text">
+                  <span className="sidebar__plan-title">{plan.title}</span>
+                  <span className="sidebar__plan-meta font-data-mono">{formatRelative(plan.generated_at)}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

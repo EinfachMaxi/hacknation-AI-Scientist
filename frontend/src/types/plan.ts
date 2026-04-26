@@ -46,6 +46,9 @@ export interface MaterialItem {
   total_price: number
   storage?: string
   verification: 'verified' | 'suggested_verify'
+  verified_via?: 'local_catalog' | 'web'
+  match_score?: number
+  verification_snippet?: string
   source_url?: string
 }
 
@@ -255,6 +258,25 @@ export interface KnowledgeChatResponse {
   citations: KnowledgeChatCitation[]
   proposed_save: KnowledgeNode | null
   proposed_edges?: KnowledgeEdge[]
+}
+
+export interface ExperimentSummary {
+  plan_id: string
+  title: string
+  hypothesis: string
+  generated_at: string
+}
+
+export interface BackendAgent {
+  id: string | null
+  key: string
+  name: string
+  role: string
+  personality: string
+  capabilities: string[]
+  is_active: boolean
+  sort_order: number
+  metadata: Record<string, unknown>
 }
 
 export interface KnowledgeProposal {

@@ -11,6 +11,7 @@ import httpx
 from backend.app.config import Settings
 from backend.app.schemas.plan import ReviewIssue
 from backend.app.services.agent_registry import AgentDefinition
+from backend.app.services.catalog import verify_against_catalog
 from backend.app.services.integrations import TavilyClient
 from backend.app.services.tool_calling import TavilyToolGateway
 
@@ -966,6 +967,7 @@ async def _verify_materials_tools(
         if url:
             patched[idx]["source_url"] = url
             patched[idx]["verification"] = "verified"
+            patched[idx]["verified_via"] = "web"
             patched[idx]["verification_snippet"] = _truncate(snippet, 300)
     return patched, traces
 
@@ -1648,16 +1650,29 @@ async def run_dynamic_agent(
     if agent.key == "materials":
         raw = await materials_agent(prompt, settings, use_mock, system_prompt=system_prompt)
         materials = raw["materials"] if isinstance(raw, dict) else raw
-        if tools_on and gateway is not None and isinstance(materials, list):
-            materials, mat_traces = await _verify_materials_tools(
-                materials, gateway, agent, settings
+        if isinstance(materials, list):
+            # 1) Kostenloser, deterministischer Local-Catalog-Match. Schlaegt
+            #    Treffer als `verified_via='local_catalog'` aus und reduziert
+            #    den Bedarf an Tavily-Calls.
+            materials, catalog_summary = verify_against_catalog(materials)
+            traces.append(
+                {
+                    "tool": "catalog.local_match",
+                    "status": "ok",
+                    "call_index": 0,
+                    "payload": catalog_summary,
+                }
             )
-            traces.extend(mat_traces)
-            materials, merge_trace = await _merge_materials_with_supplier_data(
-                materials, prompt, settings
-            )
-            if merge_trace is not None:
-                traces.append(merge_trace)
+            if tools_on and gateway is not None:
+                materials, mat_traces = await _verify_materials_tools(
+                    materials, gateway, agent, settings
+                )
+                traces.extend(mat_traces)
+                materials, merge_trace = await _merge_materials_with_supplier_data(
+                    materials, prompt, settings
+                )
+                if merge_trace is not None:
+                    traces.append(merge_trace)
         return materials, traces
 
     if agent.key == "budget":

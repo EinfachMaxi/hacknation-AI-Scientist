@@ -42,6 +42,11 @@ class Protocol(BaseModel):
 
 
 class MaterialItem(BaseModel):
+    # extra="allow" wichtig, damit Felder wie `verified_via`, `match_score`,
+    # `verification_snippet` aus der Catalog-/Tavily-Verifikation durchlaufen,
+    # ohne dass wir das ganze Schema versionieren muessen.
+    model_config = ConfigDict(extra="allow")
+
     item: str
     catalog_number: str
     supplier: str

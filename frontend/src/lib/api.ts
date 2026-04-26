@@ -2,8 +2,10 @@ import type {
   AcceptDraftResponse,
   AgentEvent,
   AgentMessage,
+  BackendAgent,
   ExperimentPlan,
   ExperimentRun,
+  ExperimentSummary,
   KnowledgeCandidates,
   KnowledgeChatResponse,
   KnowledgeEdge,
@@ -92,6 +94,23 @@ export async function startRun(request: StartRunRequest): Promise<StartRunRespon
     throw new Error('Run konnte nicht gestartet werden')
   }
   return (await response.json()) as StartRunResponse
+}
+
+export async function listRecentPlans(): Promise<ExperimentSummary[]> {
+  const response = await fetch(`${API_BASE_URL}/plans`)
+  if (!response.ok) {
+    throw new Error('Plans konnten nicht geladen werden')
+  }
+  return (await response.json()) as ExperimentSummary[]
+}
+
+export async function fetchBackendAgents(): Promise<BackendAgent[]> {
+  const response = await fetch(`${API_BASE_URL}/agents`)
+  if (!response.ok) {
+    throw new Error('Agents konnten nicht geladen werden')
+  }
+  const data = (await response.json()) as { agents: BackendAgent[] }
+  return data.agents ?? []
 }
 
 export async function getRun(runId: string): Promise<ExperimentRun> {

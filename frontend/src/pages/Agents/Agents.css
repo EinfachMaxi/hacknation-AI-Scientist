@@ -4,13 +4,29 @@
 .agents-page__title { color:var(--on-surface); display:flex; align-items:center; gap:12px; margin-bottom:8px; font-weight:500; letter-spacing:-0.01em; }
 .agents-page__title .material-symbols-outlined { color:var(--on-surface-variant); font-size:22px!important; }
 .agents-page__subtitle { color:var(--on-surface-variant); font-size:13px; line-height:1.6; margin-bottom:32px; max-width:640px; }
+.agents-page__subtitle code { background:var(--surface-container); padding:1px 6px; border-radius:4px; font-family:var(--font-mono); font-size:11px; }
+.agents-page__head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; }
+.agents-page__refresh { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--outline-variant); background:var(--surface-container-lowest); color:var(--on-surface-variant); border-radius:999px; cursor:pointer; transition:border-color 0.15s ease, color 0.15s ease, background 0.15s ease; height:fit-content; }
+.agents-page__refresh:hover:not(:disabled) { border-color:var(--outline); color:var(--on-surface); background:var(--surface-container-low); }
+.agents-page__refresh:disabled { opacity:0.6; cursor:not-allowed; }
+.agents-page__error { display:flex; align-items:center; gap:8px; padding:10px 14px; border:1px solid color-mix(in srgb, var(--error) 40%, transparent); background:color-mix(in srgb, var(--error) 10%, transparent); color:var(--error); border-radius:var(--rounded); margin-bottom:24px; }
+.agents-page__loading { display:flex; flex-direction:column; align-items:center; gap:12px; padding:48px 0; color:var(--on-surface-variant); }
 .agents-page__grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
-.agents-page__card { background:var(--surface-container-lowest); border:1px solid var(--outline-variant); border-radius:var(--rounded); padding:20px; transition:border-color 0.15s ease, background 0.15s ease; }
+.agents-page__card { background:var(--surface-container-lowest); border:1px solid var(--outline-variant); border-radius:var(--rounded); padding:20px; transition:border-color 0.15s ease, background 0.15s ease; display:flex; flex-direction:column; gap:10px; }
 .agents-page__card:hover { border-color:var(--outline); background:var(--surface-container-low); }
-.agents-page__card-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.agents-page__card-header { display:flex; align-items:center; gap:10px; }
 .agents-page__card-header .material-symbols-outlined { font-size:18px; color:var(--on-surface-variant); }
-.agents-page__card-header h2 { font-size:13px; color:var(--on-surface); font-weight:600; letter-spacing:-0.01em; }
-.agents-page__card p { color:var(--on-surface-variant); font-size:12px; line-height:1.55; }
+.agents-page__card-header h2 { font-size:13px; color:var(--on-surface); font-weight:600; letter-spacing:-0.01em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.agents-page__badge { font-size:9px; letter-spacing:0.08em; padding:2px 7px; border-radius:999px; font-weight:600; border:1px solid; }
+.agents-page__badge--active { color:var(--success, #4ade80); border-color:color-mix(in srgb, var(--success, #4ade80) 35%, transparent); background:color-mix(in srgb, var(--success, #4ade80) 12%, transparent); }
+.agents-page__badge--inactive { color:var(--on-surface-variant); border-color:var(--outline-variant); background:var(--surface-container); }
+.agents-page__role { color:var(--on-surface); font-size:12px; line-height:1.55; }
+.agents-page__personality { color:var(--on-surface-variant); font-size:11px; line-height:1.55; }
+.agents-page__chips { display:flex; flex-wrap:wrap; gap:4px; }
+.agents-page__chip { font-size:10px; padding:2px 7px; border-radius:4px; background:var(--surface-container); color:var(--on-surface-variant); border:1px solid var(--outline-variant); }
+.agents-page__meta { display:flex; flex-direction:column; gap:4px; padding-top:8px; border-top:1px dashed var(--outline-variant); }
+.agents-page__meta-row { display:flex; gap:8px; align-items:baseline; font-size:10px; color:var(--on-surface-variant); }
+.agents-page__meta-row .font-label-caps { min-width:54px; opacity:0.7; }
 
 @media (max-width: 1024px) {
   .agents-page { padding:24px; }

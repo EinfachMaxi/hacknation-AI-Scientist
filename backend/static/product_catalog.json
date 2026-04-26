@@ -1,20 +1,202 @@
 [
   {
     "item": "Anti-CRP monoclonal antibody (clone CRP-8)",
+    "aliases": ["anti-crp antibody", "crp antibody", "crp-8"],
     "catalog_number": "ab8278",
     "supplier": "Abcam",
     "unit_price": 395.0,
     "currency": "EUR",
     "storage": "-20C",
-    "source_url": "https://www.abcam.com/"
+    "source_url": "https://www.abcam.com/products/primary-antibodies/c-reactive-protein-antibody-crp-8-ab8278.html"
   },
   {
     "item": "Whatman Grade 1 filter paper",
+    "aliases": ["whatman filter paper", "whatman grade 1", "grade 1 filter"],
     "catalog_number": "1001-125",
     "supplier": "Cytiva",
     "unit_price": 42.5,
     "currency": "EUR",
     "storage": "Room temperature",
-    "source_url": "https://www.cytivalifesciences.com/"
+    "source_url": "https://www.cytivalifesciences.com/en/us/shop/whatman-laboratory-filtration/whatman-filter-papers/grade-1-qualitative-filter-papers-standard-grade-circles-p-08081"
+  },
+  {
+    "item": "Q5 High-Fidelity DNA Polymerase",
+    "aliases": ["q5 polymerase", "q5 high fidelity", "q5 dna polymerase"],
+    "catalog_number": "M0491S",
+    "supplier": "New England Biolabs",
+    "unit_price": 142.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.neb.com/en-us/products/m0491-q5-high-fidelity-dna-polymerase"
+  },
+  {
+    "item": "T4 DNA Ligase",
+    "aliases": ["t4 ligase", "dna ligase t4"],
+    "catalog_number": "M0202S",
+    "supplier": "New England Biolabs",
+    "unit_price": 78.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.neb.com/en-us/products/m0202-t4-dna-ligase"
+  },
+  {
+    "item": "EcoRI restriction enzyme",
+    "aliases": ["ecori", "eco ri", "ecori enzyme"],
+    "catalog_number": "R0101S",
+    "supplier": "New England Biolabs",
+    "unit_price": 68.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.neb.com/en-us/products/r0101-ecori"
+  },
+  {
+    "item": "GoTaq Green Master Mix",
+    "aliases": ["gotaq master mix", "taq polymerase mix", "gotaq green"],
+    "catalog_number": "M7122",
+    "supplier": "Promega",
+    "unit_price": 215.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.promega.com/products/pcr/taq-polymerase/gotaq-green-master-mix/"
+  },
+  {
+    "item": "QIAprep Spin Miniprep Kit (250)",
+    "aliases": ["qiaprep miniprep", "miniprep kit", "qiagen miniprep"],
+    "catalog_number": "27106",
+    "supplier": "Qiagen",
+    "unit_price": 612.0,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.qiagen.com/us/products/discovery-and-translational-research/dna-rna-purification/dna-purification/plasmid-dna/qiaprep-spin-miniprep-kit"
+  },
+  {
+    "item": "DMEM, high glucose, GlutaMAX Supplement",
+    "aliases": ["dmem", "dulbecco modified eagle", "dmem high glucose"],
+    "catalog_number": "10566016",
+    "supplier": "Thermo Fisher",
+    "unit_price": 32.5,
+    "currency": "EUR",
+    "storage": "2-8C",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/10566016"
+  },
+  {
+    "item": "Fetal Bovine Serum (FBS), qualified",
+    "aliases": ["fbs", "fetal bovine serum", "fetal calf serum"],
+    "catalog_number": "26140079",
+    "supplier": "Thermo Fisher",
+    "unit_price": 458.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/26140079"
+  },
+  {
+    "item": "Penicillin-Streptomycin (10,000 U/mL)",
+    "aliases": ["pen-strep", "penicillin streptomycin", "pen strep"],
+    "catalog_number": "15140122",
+    "supplier": "Thermo Fisher",
+    "unit_price": 28.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/15140122"
+  },
+  {
+    "item": "Lipofectamine 3000 Transfection Reagent",
+    "aliases": ["lipofectamine 3000", "lipofectamine"],
+    "catalog_number": "L3000015",
+    "supplier": "Thermo Fisher",
+    "unit_price": 528.0,
+    "currency": "EUR",
+    "storage": "2-8C",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/L3000015"
+  },
+  {
+    "item": "1xPBS, pH 7.4",
+    "aliases": ["pbs", "phosphate buffered saline", "pbs ph 7.4"],
+    "catalog_number": "10010023",
+    "supplier": "Thermo Fisher",
+    "unit_price": 18.0,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/10010023"
+  },
+  {
+    "item": "Bradford Reagent",
+    "aliases": ["bradford assay", "bradford protein assay", "coomassie bradford"],
+    "catalog_number": "B6916",
+    "supplier": "Sigma-Aldrich",
+    "unit_price": 89.0,
+    "currency": "EUR",
+    "storage": "2-8C",
+    "source_url": "https://www.sigmaaldrich.com/US/en/product/sigma/b6916"
+  },
+  {
+    "item": "Tris-HCl buffer, 1M, pH 8.0",
+    "aliases": ["tris-hcl", "tris hcl buffer", "tris buffer ph 8"],
+    "catalog_number": "T2694",
+    "supplier": "Sigma-Aldrich",
+    "unit_price": 56.0,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.sigmaaldrich.com/US/en/product/sigma/t2694"
+  },
+  {
+    "item": "Agarose, low EEO",
+    "aliases": ["agarose", "low eeo agarose", "agarose powder"],
+    "catalog_number": "A9539",
+    "supplier": "Sigma-Aldrich",
+    "unit_price": 124.0,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.sigmaaldrich.com/US/en/product/sigma/a9539"
+  },
+  {
+    "item": "SYBR Safe DNA Gel Stain",
+    "aliases": ["sybr safe", "sybr safe stain", "dna gel stain"],
+    "catalog_number": "S33102",
+    "supplier": "Thermo Fisher",
+    "unit_price": 142.0,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/S33102"
+  },
+  {
+    "item": "10x TBE Buffer",
+    "aliases": ["tbe buffer", "tris borate edta", "10x tbe"],
+    "catalog_number": "T4415",
+    "supplier": "Sigma-Aldrich",
+    "unit_price": 38.0,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.sigmaaldrich.com/US/en/product/sigma/t4415"
+  },
+  {
+    "item": "GeneRuler 1 kb DNA Ladder",
+    "aliases": ["1kb dna ladder", "dna ladder 1kb", "generuler"],
+    "catalog_number": "SM0311",
+    "supplier": "Thermo Fisher",
+    "unit_price": 95.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/SM0311"
+  },
+  {
+    "item": "BSA (Bovine Serum Albumin), Fraction V",
+    "aliases": ["bsa", "bovine serum albumin", "bsa fraction v"],
+    "catalog_number": "A7906",
+    "supplier": "Sigma-Aldrich",
+    "unit_price": 78.0,
+    "currency": "EUR",
+    "storage": "2-8C",
+    "source_url": "https://www.sigmaaldrich.com/US/en/product/sigma/a7906"
+  },
+  {
+    "item": "TrypLE Express Enzyme",
+    "aliases": ["tryple express", "tryple", "trypsin replacement"],
+    "catalog_number": "12604013",
+    "supplier": "Thermo Fisher",
+    "unit_price": 48.0,
+    "currency": "EUR",
+    "storage": "2-8C",
+    "source_url": "https://www.thermofisher.com/order/catalog/product/12604013"
   }
 ]

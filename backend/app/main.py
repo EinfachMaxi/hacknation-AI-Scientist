@@ -112,6 +112,33 @@ async def health_providers() -> dict:
     return {"providers": providers, "tool_calling_enabled": settings.agent_tool_calling_enabled}
 
 
+@app.get("/agents")
+async def list_agents() -> dict:
+    """Liste der aktiven Agenten aus der Registry.
+
+    Wird von der Frontend-`/agents`-Seite genutzt, damit dort die echten
+    Backend-Agenten angezeigt werden statt einer statischen Liste.
+    """
+    registry = AgentRegistry(repository)
+    agents = await registry.get_active_agents()
+    return {
+        "agents": [
+            {
+                "id": agent.id,
+                "key": agent.key,
+                "name": agent.name,
+                "role": agent.role,
+                "personality": agent.personality,
+                "capabilities": list(agent.capabilities),
+                "is_active": agent.is_active,
+                "sort_order": agent.sort_order,
+                "metadata": agent.metadata,
+            }
+            for agent in sorted(agents, key=lambda a: a.sort_order)
+        ]
+    }
+
+
 @app.post("/runs", response_model=StartRunResponse)
 async def start_run(
     request: StartRunRequest,

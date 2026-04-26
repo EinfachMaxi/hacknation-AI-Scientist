@@ -279,6 +279,7 @@ class PlanOrchestrator:
         *,
         streaming: bool,
     ) -> ExperimentPlan:
+        plan_start = datetime.utcnow()
         active_agents = await self._registry.get_active_agents()
         agent_by_key = {agent.key: agent for agent in active_agents}
         agent_id_by_key = {agent.key: str(agent.id) for agent in active_agents if agent.id}
@@ -398,11 +399,28 @@ class PlanOrchestrator:
             for output_key, output in results:
                 state[output_key] = output
 
+        plan_end = datetime.utcnow()
+        generation_seconds = max(0.0, (plan_end - plan_start).total_seconds())
+        # Heuristik fuer "Wieviel Researcher-Zeit haetten wir manuell gebraucht?"
+        # Reine Faustformel: pro Protocol-Step 30 min Recherche/Schreiben,
+        # pro Material 5 min Catalog-Lookup, +60 min Doc-Aufbau. Wir setzen das
+        # explizit ins metadata, damit das Frontend keinen eigenen Heuristik-
+        # Code braucht und der Wert im Plan-PDF stabil ist.
+        steps_count = (
+            len(state["protocol"].get("steps", [])) if isinstance(state.get("protocol"), dict) else 0
+        )
+        materials_count = (
+            len(state["materials"]) if isinstance(state.get("materials"), list) else 0
+        )
+        manual_minutes_estimate = steps_count * 30 + materials_count * 5 + 60
+
         meta: dict[str, Any] = {
             "experiment_type": state.get("experiment_type") or "general",
             "generated_by": "dynamic-orchestrator-v2",
             "orchestration_mode": "dynamic_db_registry",
             "tool_calling_enabled": self._settings.agent_tool_calling_enabled,
+            "generation_seconds": round(generation_seconds, 2),
+            "manual_minutes_estimate": manual_minutes_estimate,
         }
         if streaming:
             meta["streaming"] = True
