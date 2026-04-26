@@ -24,9 +24,9 @@ const seedEdges = [
 ]
 
 const tc: Record<string,{bg:string;border:string;dot:string}> = {
-  experiment:{bg:'var(--surface-container)',border:'var(--primary-container)',dot:'var(--primary)'},
-  correction:{bg:'var(--surface-container)',border:'var(--tertiary-container)',dot:'var(--tertiary)'},
-  reagent:{bg:'var(--surface-container)',border:'var(--secondary-container)',dot:'var(--secondary)'},
+  experiment:{bg:'var(--surface-container-lowest)',border:'var(--outline-variant)',dot:'var(--primary)'},
+  correction:{bg:'var(--surface-container-lowest)',border:'var(--outline-variant)',dot:'var(--tertiary)'},
+  reagent:{bg:'var(--surface-container-lowest)',border:'var(--outline-variant)',dot:'var(--secondary)'},
 }
 
 export default function KnowledgeGarden() {
@@ -108,9 +108,9 @@ export default function KnowledgeGarden() {
       <div className="kg__panel" id="node-detail-panel">
         <div className="kg__filter"><div className="kg__filter-in"><span className="material-symbols-outlined" style={{fontSize:18,color:'var(--outline)'}}>filter_list</span><input className="font-data-mono" placeholder="Filter nodes..." value={filter} onChange={e=>setFilter(e.target.value)} id="node-filter-input"/></div></div>
         <div className="kg__detail">
-          <div className="kg__dh"><div className="kg__di"><span className="material-symbols-outlined" style={{color:'var(--primary)',fontVariationSettings:"'FILL' 1"}}>science</span></div><div><h3 className="font-headline-md" style={{color:'var(--on-surface)',marginBottom:4}}>{sel.title||sel.id}</h3><div style={{display:'flex',gap:8}}><span className="kg__tag kg__tag--blue font-label-caps">{sel.id}</span><span className="kg__tag kg__tag--neutral font-label-caps">PHYSICS</span></div></div></div>
+          <div className="kg__dh"><div className="kg__di"><span className="material-symbols-outlined" style={{fontSize:20,color:'var(--on-surface-variant)'}}>science</span></div><div><h3 className="font-headline-md" style={{color:'var(--on-surface)',marginBottom:4,fontWeight:500,letterSpacing:'-0.01em'}}>{sel.title||sel.id}</h3><div style={{display:'flex',gap:8}}><span className="kg__tag kg__tag--blue font-label-caps">{sel.id}</span><span className="kg__tag kg__tag--neutral font-label-caps">PHYSICS</span></div></div></div>
           <div className="kg__db">
-            <div className="kg__stats"><div><div className="font-label-caps" style={{color:'var(--outline)',fontSize:10,marginBottom:4}}>Confidence</div><div className="font-data-mono" style={{color:'var(--secondary)',fontSize:18}}>{sel.conf||'N/A'}</div></div><div><div className="font-label-caps" style={{color:'var(--outline)',fontSize:10,marginBottom:4}}>Times Applied</div><div className="font-data-mono" style={{color:'var(--on-surface)',fontSize:18}}>{sel.applied||0}</div></div></div>
+            <div className="kg__stats"><div><div className="font-label-caps" style={{color:'var(--outline)',fontSize:10,marginBottom:4}}>Confidence</div><div className="font-data-mono" style={{color:'var(--on-surface)',fontSize:18}}>{sel.conf||'N/A'}</div></div><div><div className="font-label-caps" style={{color:'var(--outline)',fontSize:10,marginBottom:4}}>Times Applied</div><div className="font-data-mono" style={{color:'var(--on-surface)',fontSize:18}}>{sel.applied||0}</div></div></div>
             <div><h4 className="font-label-caps" style={{color:'var(--outline)',marginBottom:8}}>ABSTRACT / CONTENT</h4><p className="font-body-base" style={{color:'var(--on-surface)',fontSize:14}}>{sel.abstract||'No content available.'}</p></div>
             {sel.conns&&<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:12}}><h4 className="font-label-caps" style={{color:'var(--outline)'}}>PRIMARY CONNECTIONS</h4><span className="font-data-mono" style={{color:'var(--on-surface-variant)',fontSize:12}}>{sel.conns.length} Direct</span></div><div className="kg__conn-list">{sel.conns.map(c=><div key={c.id} className="kg__conn-item"><div style={{width:8,height:8,borderRadius:'50%',background:tc[c.type].dot,flexShrink:0}}/><span className="font-data-mono" style={{color:'var(--on-surface)',fontSize:13}}>{c.label}</span></div>)}</div></div>}
           </div>

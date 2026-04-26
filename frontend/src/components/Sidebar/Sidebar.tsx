@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
       <div className="sidebar__session">
         <div className="sidebar__session-header">
           <div className="sidebar__session-icon">
-            <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontVariationSettings: "'FILL' 1" }}>science</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--on-surface-variant)' }}>science</span>
           </div>
           <div>
             <h2 className="sidebar__session-name">Lab Alpha-7</h2>

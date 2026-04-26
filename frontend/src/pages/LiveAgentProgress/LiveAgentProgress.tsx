@@ -84,9 +84,9 @@ export default function LiveAgentProgress() {
 
   const colorMap: Record<string, string> = useMemo(
     () => ({
-      secondary: 'var(--secondary)',
+      secondary: 'var(--on-surface)',
       primary: 'var(--primary)',
-      tertiary: 'var(--tertiary)',
+      tertiary: 'var(--outline)',
       dormant: 'var(--outline-variant)',
     }),
     []
@@ -367,19 +367,19 @@ export default function LiveAgentProgress() {
           <div className="live-progress__banner-gradient"></div>
           <div className="live-progress__banner-content">
             <div className="live-progress__banner-icon">
-              <span className="material-symbols-outlined animate-pulse" style={{ fontSize: 30, color: 'var(--primary)' }}>model_training</span>
+              <span className="material-symbols-outlined animate-pulse" style={{ fontSize: 26, color: 'var(--on-surface-variant)' }}>model_training</span>
               <div className="live-progress__ping"></div>
               <div className="live-progress__ping-static"></div>
             </div>
             <div style={{ flex: 1 }}>
-              <h1 className="font-headline-md" style={{ color: 'var(--on-surface)', marginBottom: 8 }}>Generating Experimental Protocol</h1>
+              <h1 className="font-headline-md" style={{ color: 'var(--on-surface)', marginBottom: 8, fontWeight: 500, letterSpacing: '-0.01em' }}>Generating Experimental Protocol</h1>
               <p className="font-body-base" style={{ color: 'var(--on-surface-variant)', maxWidth: 800 }}>
-                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Hypothesis:</span>{' '}
+                <span className="font-label-caps" style={{ color: 'var(--outline)', marginRight: 8 }}>HYPOTHESIS</span>
                 {hypothesis}
               </p>
             </div>
             <div style={{ flexShrink: 0, textAlign: 'right' }}>
-              <div className="font-data-mono" style={{ color: 'var(--primary)', marginBottom: 4 }}>T+ {fmt(elapsed)}</div>
+              <div className="font-data-mono" style={{ color: 'var(--on-surface)', marginBottom: 6, fontSize: 13 }}>T+ {fmt(elapsed)}</div>
               <div className="live-progress__swarm-badge font-label-caps">SWARM ACTIVE</div>
             </div>
           </div>
@@ -410,8 +410,8 @@ export default function LiveAgentProgress() {
                   <span className="font-data-mono" style={{ color: colorMap[agent.color], fontSize: 13 }}>{Math.round(agent.progress)}%</span>
                 </div>
                 {toolBadge ? (
-                  <div className="font-label-caps" style={{ color: 'var(--primary)', marginBottom: 6, fontSize: 10 }}>
-                    TOOL: {toolBadge}
+                  <div className="font-label-caps" style={{ color: 'var(--on-surface-variant)', marginBottom: 6, fontSize: 10 }}>
+                    TOOL · {toolBadge}
                   </div>
                 ) : null}
                 <div className={`agent-card__terminal ${!agent.active ? 'agent-card__terminal--dormant' : ''}`}>

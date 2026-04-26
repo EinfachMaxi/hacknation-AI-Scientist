@@ -11,12 +11,15 @@ export default function Dashboard() {
   return (
     <div className="dashboard knowledge-grid">
       <div className="dashboard__container">
-        <section className="dashboard__input-section glass-panel animate-fadeIn" id="hypothesis-input-section">
+        <section className="dashboard__input-section animate-fadeIn" id="hypothesis-input-section">
           <div className="dashboard__input-glow"></div>
           <h1 className="font-headline-md dashboard__title">
-            <span className="material-symbols-outlined dashboard__title-icon" style={{ fontVariationSettings: "'FILL' 1" }}>biotech</span>
+            <span className="material-symbols-outlined dashboard__title-icon">biotech</span>
             Scientific Question Formulation
           </h1>
+          <p className="dashboard__subtitle">
+            Describe a hypothesis or research question. The agent network will generate a structured experimental plan with protocol, materials, budget and timeline.
+          </p>
           <div className="dashboard__textarea-wrapper">
             <label className="dashboard__sr-only" htmlFor="hypothesis-textarea">Scientific hypothesis input</label>
             <textarea
