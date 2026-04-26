@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useLocation, useParams } from 'react-router-dom'
+import { loadPlan } from '../../lib/api'
+import type { ExperimentPlan } from '../../types/plan'
 import './ExperimentPlanDetail.css'
 
 const steps = [
@@ -25,8 +28,40 @@ const tabs: {id:Tab;l:string;i:string}[] = [
 ]
 
 export default function ExperimentPlanDetail() {
+  const { id } = useParams()
+  const location = useLocation()
+  const routePlan = (location.state as { plan?: ExperimentPlan } | null)?.plan
+  const currentPlan = useMemo(() => {
+    if (routePlan) {
+      return routePlan
+    }
+    if (id) {
+      return loadPlan(id)
+    }
+    return null
+  }, [id, routePlan])
   const [at, setAt] = useState<Tab>('protocol')
   const [sr, setSr] = useState(true)
+
+  const protocolSteps = currentPlan?.protocol.steps ?? steps.map((s, index) => ({
+    step_number: index + 1,
+    action: s.t,
+    duration: s.d,
+    details: s.desc,
+    notes: s.warn,
+    source: undefined,
+  }))
+  const materials = currentPlan?.materials ?? mats.map((m) => ({
+    item: m.name,
+    catalog_number: m.cat,
+    supplier: m.sup,
+    quantity: m.qty,
+    unit_price: Number(m.p.replace(/[^0-9.]/g, '')) || 0,
+    currency: 'USD',
+    total_price: Number(m.p.replace(/[^0-9.]/g, '')) || 0,
+    verification: m.v ? 'verified' : 'suggested_verify',
+  }))
+  const literature = currentPlan?.literature_qc.references ?? []
 
   return (
     <div className="ed" id="experiment-plan-detail-page">
@@ -35,10 +70,10 @@ export default function ExperimentPlanDetail() {
           <div style={{display:'flex',flexDirection:'column',gap:8,maxWidth:800}}>
             <div style={{display:'flex',alignItems:'center',gap:12}}>
               <span className="ed__badge font-label-caps">DRAFT</span>
-              <h1 className="font-headline-md" style={{color:'var(--on-surface)'}}>EXP-8492: Graphene Oxide Sensor Calibration</h1>
+              <h1 className="font-headline-md" style={{color:'var(--on-surface)'}}>{currentPlan?.title ?? 'EXP-8492: Graphene Oxide Sensor Calibration'}</h1>
             </div>
             <p className="font-body-base" style={{color:'var(--on-surface-variant)'}}>
-              <span style={{fontWeight:500,color:'var(--on-surface)'}}>Hypothesis:</span> Optimizing thermal reduction at 450°C in argon will increase VOC sensitivity by 25%.
+              <span style={{fontWeight:500,color:'var(--on-surface)'}}>Hypothesis:</span> {currentPlan?.hypothesis ?? 'Optimizing thermal reduction at 450°C in argon will increase VOC sensitivity by 25%.'}
             </p>
           </div>
           <button className="ed__export" id="export-pdf-btn">
@@ -61,9 +96,9 @@ export default function ExperimentPlanDetail() {
             {at==='protocol'&&<div className="ed__tc animate-fadeIn">
               <div className="ed__toolbar">
                 <div style={{display:'flex',alignItems:'center',gap:16}}>
-                  <span className="font-data-mono" style={{color:'var(--on-surface-variant)'}}>EST. TIME: 14h 30m</span>
+                  <span className="font-data-mono" style={{color:'var(--on-surface-variant)'}}>EST. TIME: {currentPlan?.protocol.total_duration ?? '14h 30m'}</span>
                   <div style={{width:1,height:16,background:'var(--outline-variant)'}}/>
-                  <span className="font-data-mono" style={{color:'var(--on-surface-variant)'}}>STEPS: 05</span>
+                  <span className="font-data-mono" style={{color:'var(--on-surface-variant)'}}>STEPS: {String(protocolSteps.length).padStart(2, '0')}</span>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                   <span className="font-label-caps" style={{color:'var(--on-surface)'}}>SCIENTIST REVIEW</span>
@@ -71,17 +106,16 @@ export default function ExperimentPlanDetail() {
                 </div>
               </div>
               <div className="ed__steps">
-                {steps.map(s=>(
-                  <div key={s.n} className="ps" id={`step-${s.n}`}>
-                    <div style={{flexShrink:0}}><div className="ps__badge font-data-mono">{s.n}</div></div>
+                {protocolSteps.map(s=>(
+                  <div key={s.step_number} className="ps" id={`step-${s.step_number}`}>
+                    <div style={{flexShrink:0}}><div className="ps__badge font-data-mono">{String(s.step_number).padStart(2, '0')}</div></div>
                     <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                        <h3 style={{fontSize:14,fontWeight:500,color:'var(--on-surface)'}}>{s.t}</h3>
-                        <span className="ps__dur font-data-mono">{s.d}</span>
+                        <h3 style={{fontSize:14,fontWeight:500,color:'var(--on-surface)'}}>{s.action}</h3>
+                        <span className="ps__dur font-data-mono">{s.duration}</span>
                       </div>
-                      <p className="font-body-base" style={{color:'var(--on-surface-variant)'}}>{s.desc}</p>
-                      {s.eq&&<div className="ps__eq"><div className="font-label-caps" style={{color:'var(--outline)',marginBottom:4,fontSize:10}}>EQUIPMENT</div><div className="font-data-mono" style={{color:'var(--on-surface-variant)'}}>{s.eq}</div></div>}
-                      {s.warn&&<div className="ps__warn"><span className="material-symbols-outlined" style={{fontSize:20,color:'var(--error)'}}>warning</span><div><span className="font-label-caps" style={{color:'var(--error)',display:'block',marginBottom:4}}>CRITICAL NOTE</span><span className="font-body-base" style={{color:'var(--on-surface)'}}>{s.warn}</span></div></div>}
+                      <p className="font-body-base" style={{color:'var(--on-surface-variant)'}}>{s.details}</p>
+                      {s.notes&&<div className="ps__warn"><span className="material-symbols-outlined" style={{fontSize:20,color:'var(--error)'}}>warning</span><div><span className="font-label-caps" style={{color:'var(--error)',display:'block',marginBottom:4}}>CRITICAL NOTE</span><span className="font-body-base" style={{color:'var(--on-surface)'}}>{s.notes}</span></div></div>}
                     </div>
                   </div>
                 ))}
@@ -91,26 +125,26 @@ export default function ExperimentPlanDetail() {
             {at==='materials'&&<div className="ed__tc animate-fadeIn">
               <div className="mt" id="materials-table">
                 <div className="mt__h"><span className="font-label-caps" style={{flex:2}}>Material</span><span className="font-label-caps" style={{flex:1}}>Catalog #</span><span className="font-label-caps" style={{flex:1}}>Supplier</span><span className="font-label-caps" style={{flex:.5,textAlign:'right'}}>Qty</span><span className="font-label-caps" style={{flex:.5,textAlign:'right'}}>Price</span><span className="font-label-caps" style={{flex:.5,textAlign:'center'}}>Status</span></div>
-                {mats.map((m,i)=>(<div key={i} className="mt__r"><span className="font-body-base" style={{flex:2,color:'var(--on-surface)'}}>{m.name}</span><span className="font-data-mono" style={{flex:1,color:'var(--primary)'}}>{m.cat}</span><span className="font-body-base" style={{flex:1,color:'var(--on-surface-variant)'}}>{m.sup}</span><span className="font-data-mono" style={{flex:.5,textAlign:'right',color:'var(--on-surface-variant)'}}>{m.qty}</span><span className="font-data-mono" style={{flex:.5,textAlign:'right',color:'var(--on-surface)'}}>{m.p}</span><span style={{flex:.5,textAlign:'center'}}>{m.v?<span className="mt__v font-label-caps"><span className="material-symbols-outlined" style={{fontSize:12}}>check_circle</span>Verified</span>:<span className="mt__u font-label-caps"><span className="material-symbols-outlined" style={{fontSize:12}}>help</span>Verify</span>}</span></div>))}
+                {materials.map((m,i)=>(<div key={i} className="mt__r"><span className="font-body-base" style={{flex:2,color:'var(--on-surface)'}}>{m.item}</span><span className="font-data-mono" style={{flex:1,color:'var(--primary)'}}>{m.catalog_number}</span><span className="font-body-base" style={{flex:1,color:'var(--on-surface-variant)'}}>{m.supplier}</span><span className="font-data-mono" style={{flex:.5,textAlign:'right',color:'var(--on-surface-variant)'}}>{m.quantity}</span><span className="font-data-mono" style={{flex:.5,textAlign:'right',color:'var(--on-surface)'}}>{m.currency} {m.total_price.toFixed(2)}</span><span style={{flex:.5,textAlign:'center'}}>{m.verification === 'verified'?<span className="mt__v font-label-caps"><span className="material-symbols-outlined" style={{fontSize:12}}>check_circle</span>Verified</span>:<span className="mt__u font-label-caps"><span className="material-symbols-outlined" style={{fontSize:12}}>help</span>Verify</span>}</span></div>))}
               </div>
             </div>}
 
             {at==='budget'&&<div className="ed__tc animate-fadeIn">
-              <div className="bp"><div className="bp__sum"><span className="font-label-caps" style={{color:'var(--outline)'}}>ESTIMATED TOTAL</span><span className="font-headline-md" style={{color:'var(--secondary)'}}>$1,059.00</span></div>
-                {[{c:'Reagents & Chemicals',n:3,a:'$314'},{c:'Substrates & Consumables',n:2,a:'$225'},{c:'Equipment Consumables',n:4,a:'$445'},{c:'Gas Supplies',n:1,a:'$75'}].map((b,i)=><div key={i} className="bp__row"><div><span className="font-body-base" style={{color:'var(--on-surface)'}}>{b.c}</span><span className="font-data-mono" style={{color:'var(--outline)',marginLeft:8,fontSize:11}}>{b.n} items</span></div><span className="font-data-mono" style={{color:'var(--on-surface)'}}>{b.a}</span></div>)}
+              <div className="bp"><div className="bp__sum"><span className="font-label-caps" style={{color:'var(--outline)'}}>ESTIMATED TOTAL</span><span className="font-headline-md" style={{color:'var(--secondary)'}}>{currentPlan?.budget.currency ?? '$'} {currentPlan?.budget.total.toFixed(2) ?? '1,059.00'}</span></div>
+                {[{c:'Reagents',a:currentPlan?.budget.breakdown.reagents},{c:'Consumables',a:currentPlan?.budget.breakdown.consumables},{c:'Equipment Usage',a:currentPlan?.budget.breakdown.equipment_usage}].map((b,i)=><div key={i} className="bp__row"><div><span className="font-body-base" style={{color:'var(--on-surface)'}}>{b.c}</span></div><span className="font-data-mono" style={{color:'var(--on-surface)'}}>{currentPlan?.budget.currency ?? 'EUR'} {Number(b.a ?? 0).toFixed(2)}</span></div>)}
               </div>
             </div>}
 
             {at==='timeline'&&<div className="ed__tc animate-fadeIn"><div className="tp">
-              {[{p:'Phase 1: Preparation',d:'1.5 h',s:'1-2',dp:'None'},{p:'Phase 2: Thermal',d:'12 h',s:'3',dp:'Phase 1'},{p:'Phase 3: Fabrication',d:'1 h',s:'4',dp:'Phase 2'},{p:'Phase 4: Characterization',d:'45 min',s:'5',dp:'Phase 3'}].map((t,i,a)=><div key={i} className="tp__phase"><div className="tp__marker"><div className="tp__dot"/>{i<a.length-1&&<div className="tp__line"/>}</div><div className="tp__content"><div className="tp__hdr"><h4 className="font-body-base" style={{fontWeight:600,color:'var(--on-surface)'}}>{t.p}</h4><span className="font-data-mono" style={{color:'var(--primary)'}}>{t.d}</span></div><div style={{display:'flex',gap:16}}><span className="font-label-caps" style={{color:'var(--outline)'}}>Steps: {t.s}</span><span className="font-label-caps" style={{color:'var(--outline)'}}>Depends: {t.dp}</span></div></div></div>)}
+              {(currentPlan?.timeline.phases ?? [{ phase: 'Phase 1', duration: '1 day', tasks: ['Preparation'], dependencies: [] }]).map((t,i,a)=><div key={i} className="tp__phase"><div className="tp__marker"><div className="tp__dot"/>{i<a.length-1&&<div className="tp__line"/>}</div><div className="tp__content"><div className="tp__hdr"><h4 className="font-body-base" style={{fontWeight:600,color:'var(--on-surface)'}}>{t.phase}</h4><span className="font-data-mono" style={{color:'var(--primary)'}}>{t.duration}</span></div><div style={{display:'flex',gap:16}}><span className="font-label-caps" style={{color:'var(--outline)'}}>Tasks: {t.tasks.length}</span><span className="font-label-caps" style={{color:'var(--outline)'}}>Depends: {t.dependencies.join(', ') || 'None'}</span></div></div></div>)}
             </div></div>}
 
             {at==='validation'&&<div className="ed__tc animate-fadeIn"><div className="vp">
-              {[{ok:true,t:'Protocol Completeness',d:'All fields populated. 5/5 steps have durations.'},{ok:true,t:'Materials Cross-Reference',d:'4/5 materials verified.'},{ok:false,t:'Unverified Supplier',d:'Argon Gas (AR-UHP) — Verify before ordering.'},{ok:true,t:'Timeline Consistency',d:'All dependencies satisfied.'}].map((v,i)=><div key={i} className={`vp__item vp__item--${v.ok?'pass':'warn'}`}><span className="material-symbols-outlined" style={{color:v.ok?'var(--secondary)':'var(--tertiary)',fontSize:20}}>{v.ok?'check_circle':'warning'}</span><div><span className="font-body-base" style={{fontWeight:500,color:'var(--on-surface)'}}>{v.t}</span><p className="font-body-base" style={{color:'var(--on-surface-variant)',fontSize:13}}>{v.d}</p></div></div>)}
+              {(currentPlan?.review_issues.length ? currentPlan.review_issues.map((issue) => ({ ok: issue.severity !== 'error', t: issue.path, d: issue.message })) : [{ok:true,t:'Protocol Completeness',d:'No critical issues flagged.'}]).map((v,i)=><div key={i} className={`vp__item vp__item--${v.ok?'pass':'warn'}`}><span className="material-symbols-outlined" style={{color:v.ok?'var(--secondary)':'var(--tertiary)',fontSize:20}}>{v.ok?'check_circle':'warning'}</span><div><span className="font-body-base" style={{fontWeight:500,color:'var(--on-surface)'}}>{v.t}</span><p className="font-body-base" style={{color:'var(--on-surface-variant)',fontSize:13}}>{v.d}</p></div></div>)}
             </div></div>}
 
             {at==='literature'&&<div className="ed__tc animate-fadeIn"><div className="lp">
-              {[{tag:'PRIMARY',t:'Thermal Reduction of GO for Gas Sensing',r:'Zhang et al., ACS Nano, 2023',d:'Thermal reduction at 400-500°C produces optimal rGO for VOC detection.'},{tag:'SUPPORTING',t:'Comparative Study of GO Reduction Methods',r:'Kim et al., Carbon, 2022',d:'Chemical vs thermal: 15% baseline variance with hydrazine.'},{tag:'NOVELTY',t:'Novelty Signal: MODERATE',r:'',d:'450°C + interdigitated Au electrodes for multi-VOC detection has limited prior art.'}].map((l,i)=><div key={i} className="lp__item"><div className="lp__tag font-label-caps">{l.tag}</div><h4 className="font-body-base" style={{fontWeight:500,color:'var(--on-surface)',marginBottom:4}}>{l.t}</h4>{l.r&&<p className="font-data-mono" style={{color:'var(--on-surface-variant)',fontSize:11}}>{l.r}</p>}<p className="font-body-base" style={{color:'var(--on-surface-variant)',fontSize:12,marginTop:8}}>{l.d}</p></div>)}
+              {(literature.length ? literature.map((l) => ({ tag: currentPlan?.literature_qc.novelty_signal ?? 'REFERENCE', t: l.title, r: [l.authors, l.journal, l.year].filter(Boolean).join(', '), d: l.key_difference ?? l.similarity ?? 'Reference from literature scout.' })) : [{tag:'NOVELTY',t:'No references found',r:'',d:currentPlan?.literature_qc.summary ?? 'No literature data available.'}]).map((l,i)=><div key={i} className="lp__item"><div className="lp__tag font-label-caps">{l.tag}</div><h4 className="font-body-base" style={{fontWeight:500,color:'var(--on-surface)',marginBottom:4}}>{l.t}</h4>{l.r&&<p className="font-data-mono" style={{color:'var(--on-surface-variant)',fontSize:11}}>{l.r}</p>}<p className="font-body-base" style={{color:'var(--on-surface-variant)',fontSize:12,marginTop:8}}>{l.d}</p></div>)}
             </div></div>}
           </div>
 

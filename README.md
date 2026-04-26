@@ -285,6 +285,38 @@ Each agent receives a role-specific system prompt that defines:
 ### Supabase Schema
 
 ```sql
+-- Runs table for orchestrator lifecycle
+CREATE TABLE experiment_runs (
+  run_id TEXT PRIMARY KEY,
+  hypothesis TEXT NOT NULL,
+  experiment_type TEXT,
+  status TEXT NOT NULL,                 -- pending/running/completed/failed
+  plan_id UUID,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Append-only agent event stream (Realtime primary source for UI)
+CREATE TABLE agent_events (
+  event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id TEXT NOT NULL REFERENCES experiment_runs(run_id) ON DELETE CASCADE,
+  sequence BIGINT NOT NULL,
+  agent TEXT NOT NULL,
+  phase TEXT NOT NULL,                  -- starting/progress/complete/error
+  status TEXT NOT NULL,                 -- started/completed/failed
+  message TEXT,
+  payload JSONB DEFAULT '{}'::jsonb,
+  from_agent TEXT,
+  to_agent TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_events_run_seq ON agent_events(run_id, sequence);
+CREATE INDEX idx_agent_events_created ON agent_events(timestamp);
+
+-- Enable Realtime on agent_events in Supabase dashboard (Replication tab)
+
 -- Knowledge Nodes (the "notes")
 CREATE TABLE knowledge_nodes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

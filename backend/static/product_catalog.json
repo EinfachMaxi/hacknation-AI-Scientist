@@ -1,0 +1,20 @@
+[
+  {
+    "item": "Anti-CRP monoclonal antibody (clone CRP-8)",
+    "catalog_number": "ab8278",
+    "supplier": "Abcam",
+    "unit_price": 395.0,
+    "currency": "EUR",
+    "storage": "-20C",
+    "source_url": "https://www.abcam.com/"
+  },
+  {
+    "item": "Whatman Grade 1 filter paper",
+    "catalog_number": "1001-125",
+    "supplier": "Cytiva",
+    "unit_price": 42.5,
+    "currency": "EUR",
+    "storage": "Room temperature",
+    "source_url": "https://www.cytivalifesciences.com/"
+  }
+]

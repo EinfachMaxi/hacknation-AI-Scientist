@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import './KnowledgeGarden.css'
 
 interface KNode { id:string; type:'experiment'|'correction'|'reagent'; x:number; y:number; size:number; title?:string; conf?:string; applied?:number; abstract?:string; conns?:{id:string;label:string;type:'experiment'|'correction'|'reagent'}[] }
+interface KnowledgeResponseNode { id: string; node_type: 'experiment'|'correction'|'reagent'; title?: string; content?: string; confidence_score?: number; times_applied?: number }
+interface KnowledgeResponseEdge { source_id: string; target_id: string }
+interface KnowledgeResponse { nodes: KnowledgeResponseNode[]; edges: KnowledgeResponseEdge[] }
 
-const nodes: KNode[] = [
+const seedNodes: KNode[] = [
   { id:'EXP-992',type:'experiment',x:400,y:300,size:64,title:'Quantum Alignment Vector',conf:'94.2%',applied:128,abstract:'Observation of stable quantum states under high thermal load. The alignment vector suggests a novel pathway for reducing decoherence in multi-qubit systems.',conns:[{id:'EXP-841',label:'EXP-841: Thermal Baseline',type:'experiment'},{id:'COR-092',label:'COR-092: Drift Adjustment',type:'correction'},{id:'RGT-11',label:'RGT-11: Cooling Matrix A',type:'reagent'}] },
   { id:'COR-001',type:'correction',x:250,y:200,size:48 },
   { id:'RGT-01',type:'reagent',x:550,y:180,size:40 },
@@ -15,7 +18,7 @@ const nodes: KNode[] = [
   { id:'COR-003',type:'correction',x:180,y:280,size:24 },
 ]
 
-const edges = [
+const seedEdges = [
   {f:'EXP-992',t:'COR-001'},{f:'EXP-992',t:'RGT-01'},{f:'EXP-992',t:'EXP-841',h:true},{f:'EXP-992',t:'RGT-02'},
   {f:'EXP-841',t:'COR-002'},{f:'EXP-841',t:'RGT-03'},{f:'COR-001',t:'EXP-100'},{f:'COR-001',t:'COR-003'},
 ]
@@ -27,16 +30,52 @@ const tc: Record<string,{bg:string;border:string;dot:string}> = {
 }
 
 export default function KnowledgeGarden() {
-  const [sel, setSel] = useState<KNode>(nodes[0])
+  const [graphNodes, setGraphNodes] = useState<KNode[]>(seedNodes)
+  const [graphEdges, setGraphEdges] = useState(seedEdges)
+  const [sel, setSel] = useState<KNode>(seedNodes[0])
   const [filter, setFilter] = useState('')
   const [hov, setHov] = useState<string|null>(null)
-  const [pos, setPos] = useState(nodes.map(n=>({...n})))
+  const [pos, setPos] = useState(seedNodes.map(n=>({...n})))
+
+  useEffect(() => {
+    const run = async (): Promise<void> => {
+      try {
+        const response = await fetch(`${(import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'}/knowledge`)
+        if (!response.ok) {
+          return
+        }
+        const data = await response.json() as KnowledgeResponse
+        if (!data.nodes.length) {
+          return
+        }
+        const mappedNodes: KNode[] = data.nodes.slice(0, 50).map((node, index) => ({
+          id: node.id,
+          type: node.node_type,
+          x: 120 + ((index * 71) % 560),
+          y: 120 + ((index * 97) % 360),
+          size: Math.max(24, Math.min(64, 18 + (node.times_applied ?? 1) * 4)),
+          title: node.title,
+          conf: node.confidence_score ? `${Math.round(node.confidence_score * 100)}%` : undefined,
+          applied: node.times_applied ?? 1,
+          abstract: node.content,
+          conns: [],
+        }))
+        setGraphNodes(mappedNodes)
+        setPos(mappedNodes.map((node) => ({ ...node })))
+        setSel(mappedNodes[0])
+        setGraphEdges(data.edges.map((edge) => ({ f: edge.source_id, t: edge.target_id })))
+      } catch {
+        // fallback to seed graph
+      }
+    }
+    run()
+  }, [])
 
   useEffect(()=>{
     let id: number; const st=Date.now()
-    const anim=()=>{const e=(Date.now()-st)/1000;setPos(nodes.map((n,i)=>({...n,x:n.x+Math.sin(e*0.5+i*1.2)*3,y:n.y+Math.cos(e*0.3+i*0.8)*3})));id=requestAnimationFrame(anim)}
+    const anim=()=>{const e=(Date.now()-st)/1000;setPos(graphNodes.map((n,i)=>({...n,x:n.x+Math.sin(e*0.5+i*1.2)*3,y:n.y+Math.cos(e*0.3+i*0.8)*3})));id=requestAnimationFrame(anim)}
     anim();return()=>cancelAnimationFrame(id)
-  },[])
+  },[graphNodes])
 
   const gp=useCallback((id:string)=>{const n=pos.find(n=>n.id===id);return n?{x:n.x,y:n.y}:{x:0,y:0}},[pos])
 
@@ -57,10 +96,10 @@ export default function KnowledgeGarden() {
           {[{c:'var(--primary)',l:'Experiments'},{c:'var(--tertiary)',l:'Corrections'},{c:'var(--secondary)',l:'Reagents'}].map(x=><div key={x.l} className="kg__legend-item"><div className="kg__legend-dot" style={{background:x.c}}/><span className="font-data-mono" style={{fontSize:12,color:'var(--on-surface)'}}>{x.l}</span></div>)}
         </div>
         <svg className="kg__edges" viewBox="0 0 800 600">
-          {edges.map((e,i)=>{const f=gp(e.f),t=gp(e.t);return<line key={i} x1={f.x} y1={f.y} x2={t.x} y2={t.y} stroke={e.h?'var(--primary-container)':'var(--outline-variant)'} strokeWidth={e.h?2:1}/>})}
+          {graphEdges.map((e,i)=>{const f=gp(e.f),t=gp(e.t);return<line key={i} x1={f.x} y1={f.y} x2={t.x} y2={t.y} stroke={e.h?'var(--primary-container)':'var(--outline-variant)'} strokeWidth={e.h?2:1}/>})}
         </svg>
         {pos.map(n=>{const c=tc[n.type],isSel=sel.id===n.id,isHov=hov===n.id;return(
-          <div key={n.id} className={`kg__node ${isSel?'kg__node--sel':''}`} style={{left:n.x,top:n.y,width:n.size,height:n.size,background:c.bg,borderColor:isSel||isHov?c.dot:c.border,boxShadow:'none',transform:`translate(-50%,-50%) ${isHov?'scale(1.06)':'scale(1)'}`}} onClick={()=>{const fn=nodes.find(x=>x.id===n.id);if(fn)setSel(fn)}} onMouseEnter={()=>setHov(n.id)} onMouseLeave={()=>setHov(null)} id={`node-${n.id}`}>
+          <div key={n.id} className={`kg__node ${isSel?'kg__node--sel':''}`} style={{left:n.x,top:n.y,width:n.size,height:n.size,background:c.bg,borderColor:isSel||isHov?c.dot:c.border,boxShadow:'none',transform:`translate(-50%,-50%) ${isHov?'scale(1.06)':'scale(1)'}`}} onClick={()=>{const fn=graphNodes.find(x=>x.id===n.id);if(fn)setSel(fn)}} onMouseEnter={()=>setHov(n.id)} onMouseLeave={()=>setHov(null)} id={`node-${n.id}`}>
             {n.size>=40?<span className="material-symbols-outlined" style={{fontSize:n.size>=56?24:18,color:c.dot,opacity:0.7}}>{n.type==='experiment'?'science':n.type==='correction'?'tune':'water_drop'}</span>:<div style={{width:n.size*0.2,height:n.size*0.2,borderRadius:'50%',background:c.dot}}/>}
             {isSel&&n.id&&<div className="kg__node-label font-data-mono">{n.id}</div>}
           </div>

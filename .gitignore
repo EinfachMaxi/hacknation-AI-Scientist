@@ -1,0 +1,35 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Backend secrets
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Frontend secrets
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Node / build output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+# Local runtime / logs
+*.log
+logs/

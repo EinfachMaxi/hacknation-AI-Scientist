@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { startRun } from '../../lib/api'
 import './Dashboard.css'
 
 export default function Dashboard() {
@@ -36,10 +37,17 @@ export default function Dashboard() {
             </button>
             <button
               className="dashboard__generate-btn btn-glow font-label-caps"
-              onClick={() => {
+              onClick={async () => {
                 if (canGenerate) {
-                  navigate('/experiments/EXP-8492/progress', {
-                    state: { hypothesis: hypothesis.trim() },
+                  const run = await startRun({
+                    prompt: hypothesis.trim(),
+                    use_mock: false,
+                  })
+                  navigate(`/experiments/${run.run_id}/progress`, {
+                    state: {
+                      hypothesis: hypothesis.trim(),
+                      runId: run.run_id,
+                    },
                   })
                 }
               }}

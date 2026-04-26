@@ -1,53 +1,43 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getRun, getRunEvents, getRunPlan } from '../../lib/api'
+import { supabase } from '../../lib/supabase'
+import type { AgentEvent } from '../../types/plan'
 import './LiveAgentProgress.css'
 
-interface AgentLog { text: string; type: 'default' | 'primary' | 'secondary' | 'error' | 'pending'; }
-interface Agent { id: string; name: string; icon: string; progress: number; status: string; color: 'secondary' | 'primary' | 'tertiary' | 'dormant'; logs: AgentLog[]; active: boolean; }
-interface AgentMessage { id: string; from: string; to: string; text: string; level: 'info' | 'success' | 'warn'; }
+interface AgentLog { text: string; type: 'default' | 'primary' | 'secondary' | 'error' }
+interface Agent { id: string; name: string; icon: string; progress: number; status: string; color: 'secondary' | 'primary' | 'tertiary' | 'dormant'; logs: AgentLog[]; active: boolean }
+interface AgentMessage { id: string; from: string; to: string; text: string; level: 'info' | 'success' | 'warn' }
+type AgentLogType = AgentLog['type']
+type AgentMessageLevel = AgentMessage['level']
 
 const initialAgents: Agent[] = [
-  { id: 'literature', name: 'Literature Scout', icon: 'menu_book', progress: 62, status: 'EXTRACTING', color: 'secondary', active: true,
-    logs: [
-      { text: '> Initializing PubMed Query...', type: 'primary' },
-      { text: '> GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=nanostructured+lipid+carriers', type: 'default' },
-      { text: '> 243 results found. Filtering for diabetic models...', type: 'secondary' },
-      { text: '> Extracting methodology from PMC8745321...', type: 'default' }
-    ],
-  },
-  { id: 'protocol', name: 'Protocol Designer', icon: 'architecture', progress: 31, status: 'STRUCTURING STEPS', color: 'primary', active: true,
-    logs: [
-      { text: '> Awaiting inputs from Literature Scout...', type: 'default' },
-      { text: '> Received partial context: NLC synthesis parameters.', type: 'default' },
-      { text: '> Structuring Phase 1: NLC Preparation', type: 'primary' }
-    ],
-  },
-  { id: 'materials', name: 'Materials Agent', icon: 'science', progress: 18, status: 'IDENTIFYING CATALOG NUMBERS', color: 'tertiary', active: true,
-    logs: [
-      { text: '> Initializing inventory cross-reference...', type: 'default' },
-      { text: '> Querying Lab Alpha-7 local database...', type: 'default' },
-      { text: '> Warning: Precirol ATO 5 stock low (45g remaining)', type: 'error' }
-    ],
-  },
-  { id: 'validation', name: 'Validation Agent', icon: 'fact_check', progress: 9, status: 'CROSS-CHECKING', color: 'dormant', active: false, logs: [] },
+  { id: 'literature', name: 'Literature Scout', icon: 'menu_book', progress: 0, status: 'WAITING', color: 'secondary', active: true, logs: [] },
+  { id: 'protocol', name: 'Protocol Designer', icon: 'architecture', progress: 0, status: 'WAITING', color: 'primary', active: true, logs: [] },
+  { id: 'materials', name: 'Materials Agent', icon: 'science', progress: 0, status: 'WAITING', color: 'tertiary', active: true, logs: [] },
+  { id: 'budget', name: 'Budget Agent', icon: 'payments', progress: 0, status: 'WAITING', color: 'secondary', active: false, logs: [] },
+  { id: 'timeline', name: 'Timeline Agent', icon: 'calendar_month', progress: 0, status: 'WAITING', color: 'primary', active: false, logs: [] },
+  { id: 'review', name: 'Review Agent', icon: 'fact_check', progress: 0, status: 'WAITING', color: 'dormant', active: false, logs: [] },
 ]
 
-const streamMessages: Omit<AgentMessage, 'id'>[] = [
-  { from: 'Literature Scout', to: 'Protocol Designer', text: '3 relevante Methoden mit Erfolgsraten >72% übergeben.', level: 'success' },
-  { from: 'Materials Agent', to: 'Protocol Designer', text: 'Materialliste ergänzt, Resolvin D1 hat Lieferzeitrisiko.', level: 'warn' },
-  { from: 'Protocol Designer', to: 'Validation Agent', text: 'Draft v0.4 zur Plausibilitätsprüfung bereit.', level: 'info' },
-  { from: 'Validation Agent', to: 'Protocol Designer', text: 'Kontrollgruppe ergänzt und Endpunkte präzisiert.', level: 'success' },
-  { from: 'Protocol Designer', to: 'Materials Agent', text: 'Bitte alternative Lipidquellen für kritische Reagenzien.', level: 'info' },
-  { from: 'Literature Scout', to: 'Validation Agent', text: 'Meta-Analyse mit 41 Studien als Referenz eingespeist.', level: 'success' },
-]
+const eventStatus: Record<string, string> = {
+  starting: 'STARTING',
+  progress: 'RUNNING',
+  complete: 'COMPLETE',
+  error: 'FAILED',
+}
 
 export default function LiveAgentProgress() {
+  const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const [agents, setAgents] = useState(initialAgents)
   const [messages, setMessages] = useState<AgentMessage[]>([])
-  const [, setMessageIndex] = useState(0)
-  const [elapsed, setElapsed] = useState(165)
+  const [elapsed, setElapsed] = useState(0)
+  const [streamError, setStreamError] = useState<string | null>(null)
+  const seenEventIdsRef = useRef<Set<string>>(new Set())
   const hypothesis = (location.state as { hypothesis?: string } | null)?.hypothesis ?? 'Noch kein Hypothesis-Text uebergeben.'
+  const runId = (location.state as { runId?: string } | null)?.runId ?? id ?? ''
 
   const colorMap: Record<string, string> = useMemo(
     () => ({
@@ -61,64 +51,137 @@ export default function LiveAgentProgress() {
 
   useEffect(() => { const i = setInterval(() => setElapsed((p) => p + 1), 1000); return () => clearInterval(i) }, [])
   useEffect(() => {
-    const i = setInterval(() => {
+    let isCancelled = false
+    let poll: ReturnType<typeof setInterval> | null = null
+    let channel: { unsubscribe?: () => void } | null = null
+    const mapEventToAgent = (event: AgentEvent): string => event.agent === 'orchestrator' ? 'review' : event.agent
+
+    const newMessageId = (): string =>
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+
+    const handleEvent = (event: AgentEvent): void => {
+      if (isCancelled) {
+        return
+      }
+      if (seenEventIdsRef.current.has(event.event_id)) {
+        return
+      }
+      seenEventIdsRef.current.add(event.event_id)
+      const target = mapEventToAgent(event)
+      const messageId = newMessageId()
       setAgents((prev) =>
-        prev.map((a) => {
-          if (!a.active || a.progress >= 100) {
-            return a
+        prev.map((agent) => {
+          if (agent.id !== target) {
+            return agent
           }
-
-          const increment = Math.random() * 4
-          const nextProgress = Math.min(100, a.progress + increment)
-          let nextStatus = a.status
-
-          if (a.id === 'literature' && nextProgress > 78) {
-            nextStatus = 'SYNTHESIZING EVIDENCE'
+          const done =
+            event.phase === 'complete' ||
+            event.phase === 'error' ||
+            event.status === 'completed' ||
+            event.status === 'failed'
+          const logType: AgentLogType = event.phase === 'error' ? 'error' : 'default'
+          return {
+            ...agent,
+            active: true,
+            color: event.phase === 'error' ? 'tertiary' : agent.color,
+            progress: done ? 100 : Math.min(100, Math.max(20, agent.progress + 20)),
+            status: eventStatus[event.phase] ?? agent.status,
+            logs: [{ text: `> ${event.agent}: ${event.phase}`, type: logType }, ...agent.logs].slice(0, 4),
           }
-          if (a.id === 'protocol' && nextProgress > 55) {
-            nextStatus = 'MERGING AGENT INPUTS'
-          }
-          if (a.id === 'materials' && nextProgress > 52) {
-            nextStatus = 'MATCHING VENDOR ALTERNATIVES'
-          }
-          if (a.id === 'validation' && nextProgress > 35) {
-            nextStatus = 'SCORING PROTOCOL QUALITY'
-          }
-
-          return { ...a, progress: nextProgress, status: nextStatus }
         })
       )
-    }, 2000)
-    return () => clearInterval(i)
-  }, [])
+      const level: AgentMessageLevel = event.phase === 'error' ? 'warn' : 'info'
+      setMessages((prev) => [
+        {
+          id: messageId,
+          from: event.from_agent ?? event.agent,
+          to: event.to_agent ?? 'UI',
+          text: event.message ?? `${event.phase} (${event.status})`,
+          level,
+        },
+        ...prev,
+      ].slice(0, 6))
+    }
 
-  useEffect(() => {
-    const i = setInterval(() => {
-      setMessageIndex((prevIndex) => {
-        const next = streamMessages[prevIndex % streamMessages.length]
-        const nextMessage: AgentMessage = {
-          ...next,
-          id: `${Date.now()}-${prevIndex}`,
+    const run = async (): Promise<void> => {
+      try {
+        if (!runId) {
+          throw new Error('run_id fehlt. Bitte Run neu starten.')
         }
+        const history = await getRunEvents(runId)
+        history.forEach(handleEvent)
 
-        setMessages((prevMessages) => [nextMessage, ...prevMessages].slice(0, 6))
+        let knownSeq = history.length ? Math.max(...history.map((e) => e.sequence)) : 0
+        const channelName = `run-${runId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        channel = supabase
+          ? supabase
+              .channel(channelName)
+              .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'agent_events', filter: `run_id=eq.${runId}` },
+                (payload) => {
+                  const event = payload.new as AgentEvent
+                  if (event.sequence > knownSeq) {
+                    knownSeq = event.sequence
+                    handleEvent(event)
+                  }
+                }
+              )
+              .subscribe()
+          : null
 
-        if (next.to === 'Validation Agent') {
-          setAgents((prevAgents) =>
-            prevAgents.map((agent) =>
-              agent.id === 'validation'
-                ? { ...agent, active: true, color: 'secondary', status: 'REVIEWING INBOUND SIGNALS' }
-                : agent
-            )
-          )
+        poll = setInterval(async () => {
+          if (isCancelled) return
+          const latestEvents = await getRunEvents(runId)
+          latestEvents
+            .filter((event) => event.sequence > knownSeq)
+            .sort((a, b) => a.sequence - b.sequence)
+            .forEach((event) => {
+              knownSeq = event.sequence
+              handleEvent(event)
+            })
+          let status
+          try {
+            status = await getRun(runId)
+          } catch (error) {
+            // The run row can appear a moment after start in some environments.
+            // Keep polling instead of failing the whole page on transient 404.
+            if (error instanceof Error && error.message.includes('Run Status konnte nicht geladen werden')) {
+              return
+            }
+            throw error
+          }
+          if (status.status === 'completed' && status.plan_id) {
+            const plan = await getRunPlan(runId)
+            if (!isCancelled) {
+              navigate(`/experiments/${plan.plan_id}`, { state: { plan } })
+            }
+          } else if (status.status === 'failed') {
+            setStreamError(status.error_message ?? 'Run fehlgeschlagen')
+          }
+        }, 1500)
+
+      } catch (error) {
+        if (isCancelled) {
+          return
         }
+        setStreamError(error instanceof Error ? error.message : 'Unbekannter Streaming-Fehler')
+      }
+    }
 
-        return prevIndex + 1
-      })
-    }, 3000)
-
-    return () => clearInterval(i)
-  }, [])
+    void run()
+    return () => {
+      isCancelled = true
+      if (poll) {
+        clearInterval(poll)
+      }
+      if (channel && supabase) {
+        supabase.removeChannel(channel as never)
+      }
+    }
+  }, [hypothesis, navigate, runId])
 
   const fmt = (s: number) => `${Math.floor(s/3600).toString().padStart(2,'0')}:${Math.floor((s%3600)/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`
 
@@ -207,7 +270,7 @@ export default function LiveAgentProgress() {
               </div>
               <div className="network-graph__node network-graph__node--validation">
                 <span className="font-label-caps">Validation</span>
-                <strong>{Math.round(agents[3]?.progress ?? 0)}%</strong>
+                <strong>{Math.round(agents[5]?.progress ?? 0)}%</strong>
               </div>
             </div>
             <div className="network-messages">
@@ -223,6 +286,12 @@ export default function LiveAgentProgress() {
                 ))}
               </div>
             </div>
+            {streamError ? (
+              <div className="network-messages__item network-messages__item--warn">
+                <span className="font-label-caps">Stream Error</span>
+                <p>{streamError}</p>
+              </div>
+            ) : null}
           </div>
         </section>
       </div>
