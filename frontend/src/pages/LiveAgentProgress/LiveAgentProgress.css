@@ -139,6 +139,21 @@
   gap: 8px;
   color: var(--on-surface-variant);
 }
+.live-progress__network-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+.live-progress__network-gear {
+  flex-shrink: 0;
+  font-size: 20px !important;
+  color: var(--primary);
+  animation: liveProgressSpin 1s linear infinite;
+  opacity: 0.95;
+  pointer-events: none;
+}
 
 .agent-card {
   background: var(--surface-container-lowest);

@@ -710,14 +710,26 @@ export default function LiveAgentProgress() {
           </aside>
 
           <div className="live-progress__network-column glass-panel animate-fadeIn">
-            <div className="live-progress__column-title font-label-caps">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 14 }}
-              >
-                hub
-              </span>
-              Agents Network
+            <div className="live-progress__network-column-header">
+              <div className="live-progress__column-title font-label-caps">
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14 }}
+                >
+                  hub
+                </span>
+                Agents Network
+              </div>
+              {!streamError && !isInitializing ? (
+                <span
+                  className="material-symbols-outlined live-progress__network-gear"
+                  role="status"
+                  aria-label="Aktivität: Agent-Netz läuft"
+                  title="Agent-Netz aktiv"
+                >
+                  settings
+                </span>
+              ) : null}
             </div>
             <div className="network-graph">
               <svg
