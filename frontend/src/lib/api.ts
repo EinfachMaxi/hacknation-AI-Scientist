@@ -9,6 +9,8 @@ import type {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'
 const PLAN_STORAGE_KEY = 'ai-scientist-plan'
+const LATEST_PLAN_KEY = 'ai-scientist-latest-plan-id'
+const ACTIVE_RUN_KEY = 'ai-scientist-active-run-id'
 
 export interface GeneratePlanRequest {
   prompt: string
@@ -29,6 +31,7 @@ export interface StartRunResponse {
 
 export function savePlan(plan: ExperimentPlan): void {
   localStorage.setItem(`${PLAN_STORAGE_KEY}:${plan.plan_id}`, JSON.stringify(plan))
+  localStorage.setItem(LATEST_PLAN_KEY, plan.plan_id)
 }
 
 export function loadPlan(planId: string): ExperimentPlan | null {
@@ -40,6 +43,22 @@ export function loadPlan(planId: string): ExperimentPlan | null {
     return JSON.parse(raw) as ExperimentPlan
   } catch {
     return null
+  }
+}
+
+export function getLatestPlanId(): string | null {
+  return localStorage.getItem(LATEST_PLAN_KEY)
+}
+
+export function getActiveRunId(): string | null {
+  return localStorage.getItem(ACTIVE_RUN_KEY)
+}
+
+export function setActiveRunId(runId: string | null): void {
+  if (runId) {
+    localStorage.setItem(ACTIVE_RUN_KEY, runId)
+  } else {
+    localStorage.removeItem(ACTIVE_RUN_KEY)
   }
 }
 

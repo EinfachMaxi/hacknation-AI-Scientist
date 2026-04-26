@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { startRun } from '../../lib/api'
+import { setActiveRunId, startRun } from '../../lib/api'
 import './Dashboard.css'
 
 export default function Dashboard() {
@@ -43,6 +43,7 @@ export default function Dashboard() {
                     prompt: hypothesis.trim(),
                     use_mock: false,
                   })
+                  setActiveRunId(run.run_id)
                   navigate(`/experiments/${run.run_id}/progress`, {
                     state: {
                       hypothesis: hypothesis.trim(),

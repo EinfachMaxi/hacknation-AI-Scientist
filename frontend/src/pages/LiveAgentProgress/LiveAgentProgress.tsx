@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getRun, getRunEvents, getRunGraph, getRunMessages, getRunPlan } from '../../lib/api'
+import { getRun, getRunEvents, getRunGraph, getRunMessages, getRunPlan, setActiveRunId } from '../../lib/api'
 import { supabase } from '../../lib/supabase'
 import type { AgentEvent, GraphEdge, GraphNode, RunGraphSnapshot } from '../../types/plan'
 import './LiveAgentProgress.css'
@@ -256,6 +256,7 @@ export default function LiveAgentProgress() {
         if (!runId) {
           throw new Error('run_id fehlt. Bitte Run neu starten.')
         }
+        setActiveRunId(runId)
         setEvents([])
         seenEventIdsRef.current.clear()
         seenRunSeqRef.current.clear()
@@ -330,10 +331,12 @@ export default function LiveAgentProgress() {
           }
           if (status.status === 'completed' && status.plan_id) {
             const plan = await getRunPlan(runId)
+            setActiveRunId(null)
             if (!isCancelled) {
               navigate(`/experiments/${plan.plan_id}`, { state: { plan } })
             }
           } else if (status.status === 'failed') {
+            setActiveRunId(null)
             setStreamError(status.error_message ?? 'Run fehlgeschlagen')
           }
         }, 1500)

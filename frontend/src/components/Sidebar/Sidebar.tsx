@@ -5,8 +5,8 @@ interface NavItem { icon: string; label: string; path: string; }
 
 const mainNav: NavItem[] = [
   { icon: 'dashboard', label: 'Dashboard', path: '/' },
-  { icon: 'science', label: 'Lab Notebook', path: '/experiments/EXP-8492' },
-  { icon: 'hub', label: 'Agent Network', path: '#' },
+  { icon: 'science', label: 'Lab Notebook', path: '/lab-notebook' },
+  { icon: 'hub', label: 'Agent Network', path: '/agent-network' },
   { icon: 'schema', label: 'Knowledge Graph', path: '/knowledge-garden' },
 ]
 
@@ -15,9 +15,17 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
   const location = useLocation()
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/' || (location.pathname.startsWith('/experiments') && !location.pathname.includes('EXP'))
-    if (path === '/experiments/EXP-8492') return location.pathname.includes('/experiments/') && location.pathname.includes('EXP')
-    return location.pathname === path
+    const pathname = location.pathname
+    if (path === '/') {
+      return pathname === '/' || pathname === '/experiments'
+    }
+    if (path === '/lab-notebook') {
+      return pathname === '/lab-notebook' || (pathname.startsWith('/experiments/') && !pathname.endsWith('/progress'))
+    }
+    if (path === '/agent-network') {
+      return pathname === '/agent-network' || pathname.endsWith('/progress')
+    }
+    return pathname === path
   }
 
   return (
@@ -39,7 +47,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
             type="button"
             key={item.label}
             className={`sidebar__nav-item ${isActive(item.path) ? 'sidebar__nav-item--active' : ''}`}
-            onClick={() => { if (item.path !== '#') navigate(item.path) }}
+            onClick={() => navigate(item.path)}
             aria-current={isActive(item.path) ? 'page' : undefined}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: isActive(item.path) ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>

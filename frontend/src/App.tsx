@@ -5,6 +5,8 @@ import Agents from './pages/Agents/Agents'
 import LiveAgentProgress from './pages/LiveAgentProgress/LiveAgentProgress'
 import ExperimentPlanDetail from './pages/ExperimentPlanDetail/ExperimentPlanDetail'
 import KnowledgeGarden from './pages/KnowledgeGarden/KnowledgeGarden'
+import LabNotebook from './pages/LabNotebook/LabNotebook'
+import AgentNetwork from './pages/AgentNetwork/AgentNetwork'
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
         <Route path="/experiments" element={<Dashboard />} />
         <Route path="/experiments/:id/progress" element={<LiveAgentProgress />} />
         <Route path="/experiments/:id" element={<ExperimentPlanDetail />} />
+        <Route path="/lab-notebook" element={<LabNotebook />} />
+        <Route path="/agent-network" element={<AgentNetwork />} />
         <Route path="/knowledge-garden" element={<KnowledgeGarden />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
